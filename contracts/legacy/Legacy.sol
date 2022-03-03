@@ -7,6 +7,7 @@ contract Legacy {
     struct Will {
         uint id;
         bool initalized; //false by default, helps to check if will exist
+        string triggerType;
     }
 
     mapping(address => Will) users;
@@ -19,7 +20,11 @@ contract Legacy {
     }
 
     function addUser() public {
-        Will memory will = Will(0,true);
+        Will memory will = Will(0,true, "custodian");
         users[msg.sender] = will;
+    }
+
+    function executeWill() private {
+        //pass
     }
 }

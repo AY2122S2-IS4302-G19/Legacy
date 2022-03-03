@@ -1,0 +1,10 @@
+# web3
+stream-browserify
+crypto-browserify
+assert
+stream-http
+https-browserify
+url
+os-browserify
+
+

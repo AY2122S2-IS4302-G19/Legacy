@@ -5,16 +5,25 @@ pragma solidity >=0.5.0 <0.9.0;
 import "./TrusteeSelection.sol";
 
 contract Legacy {
-    
-    struct Will {
-        uint id;
-        bool initalized; //false by default, helps to check if will exist
-        string triggerType;
-    }
+    // enum triggerType{ INACTIVITY, CUSTODIAN }
+    uint256 numWills;
 
     TrusteeSelection trusteeSelection;
     address _owner = msg.sender;
+    address[] userList;
     mapping(address => Will) users;
+
+    
+    struct Will {
+        uint id;
+        address owner;
+        bool initalized; //false by default, helps to check if will exist
+        string triggerType;
+        mapping(address => uint256) beneficiaries;
+
+    }
+
+    
 
     constructor(TrusteeSelection trusteeSelection) public {
         trusteeSelection = trusteeSelection;
@@ -26,12 +35,26 @@ contract Legacy {
         _;
     }
 
-    function addUser() public {
-        Will memory will = Will(0,true, "custodian");
-        users[msg.sender] = will;
+    function addUser(string memory trigger_type, address[] memory beneficiaries_address, uint256[] memory amount) public returns (bool) {
+        Will storage user_will = users[msg.sender];
+        numWills++;
+        for(uint i = 0; amount.length < i; i++) {
+            address bene = beneficiaries_address[i];
+            uint256 amt = amount[i];
+            user_will.beneficiaries[bene] = amt;
+        }
+        user_will.id = numWills;
+        user_will.initalized = true;
+        user_will.triggerType = trigger_type;
+
+        return true;
     }
 
     function executeWill() private {
         //pass
+    }
+
+    function createWill() public {
+
     }
 }

@@ -17,10 +17,10 @@ contract Legacy {
     struct Will {
         uint id;
         address owner;
+        address trustee;
         bool initalized; //false by default, helps to check if will exist
         string triggerType;
         mapping(address => uint256) beneficiaries;
-
     }
 
     
@@ -35,7 +35,7 @@ contract Legacy {
         _;
     }
 
-    function addUser(string memory trigger_type, address[] memory beneficiaries_address, uint256[] memory amount) public returns (bool) {
+    function addTrusteeUser(string memory trigger_type,address trusteeAdd, address[] memory beneficiaries_address, uint256[] memory amount) public returns (bool) {
         Will storage user_will = users[msg.sender];
         numWills++;
         for(uint i = 0; amount.length < i; i++) {
@@ -46,15 +46,14 @@ contract Legacy {
         user_will.id = numWills;
         user_will.initalized = true;
         user_will.triggerType = trigger_type;
-
+        user_will.trustee = trusteeAdd;
         return true;
     }
 
-    function executeWill() private {
+    function trusteeExecuteWill(address userAddress) private view { //view parameter to be deleted. 
+        require(users[userAddress].owner != address(0), "User does not exist");
+        require(users[userAddress].trustee == msg.sender);
         //pass
     }
 
-    function createWill() public {
-
-    }
 }

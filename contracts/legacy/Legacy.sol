@@ -2,6 +2,8 @@
 pragma solidity >=0.5.0 <0.9.0;
 // pragma experimental ABIEncoderV2; //Need to be included for Will struct to be used as parameter inside functions
 
+import "./TrusteeSelection.sol";
+
 contract Legacy {
     
     struct Will {
@@ -10,8 +12,13 @@ contract Legacy {
         string triggerType;
     }
 
+    TrusteeSelection trusteeSelection;
+    address _owner = msg.sender;
     mapping(address => Will) users;
-    address _owner;
+
+    constructor(TrusteeSelection trusteeSelection) public {
+        trusteeSelection = trusteeSelection;
+    }
 
 
     modifier validUser(address user) {

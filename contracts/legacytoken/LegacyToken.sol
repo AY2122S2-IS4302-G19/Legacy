@@ -5,5 +5,6 @@ contract LegacyToken {
     struct legacyToken {
         uint256 value;
         address owner;
+        address prevOwner;
     }
 }

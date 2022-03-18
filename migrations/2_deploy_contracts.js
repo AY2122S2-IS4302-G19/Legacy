@@ -1,5 +1,5 @@
-const Legacy = artifacts.require("Legacy");
+const Legacy = artifacts.require("LegacyToken");
 
 module.exports = (deployer, network, accounts) => {
-    deployer.deploy(Legacy);
-}
+  deployer.deploy(Legacy);
+};

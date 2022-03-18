@@ -4,14 +4,29 @@ pragma solidity >=0.5.0 <0.9.0;
 import "./ERC20.sol";
 
 
+//Requries legal authority - suppose legal authorithy have address of ___
+//Since we are encouraging people to use our Token, there is no limit as to how much they can have
+//1 LT = 0.1 ether, 100000000000000000 wei, 100000000 gwei
+//1 LT token for transferring from other currency to token
+//6 LT token for transferring from token other currency
+
 contract LegacyToken {
     ERC20 erc20Contract;
-    uint256 currentSupply;
-    address owner;
+    address legacyAccount;
+    uint256 getCreditFee = 1;
+    mapping(address => bytes) public amount;
 
-     constructor() public {
+    constructor() public {
         ERC20 e = new ERC20();
         erc20Contract = e;
-        owner = 0x3897Ea9999920fc5d883b51f17496f0E0EBa13CD;
+        legacyAccount = msg.sender;
     }
+
+    //need to edit 
+    function getLegacyToken() public payable {
+        uint256 amt = msg.value / 100000000000000000;
+        erc20Contract.transferFrom(legacyAccount, msg.sender, amt);
+        erc20Contract.mint(msg.sender, amt);
+    }
+    
 }

@@ -90,6 +90,8 @@ contract Legacy {
         } else {
             executeInactivityWill(userAddress);
         }
+
+        // something here if it messes up
     }
 
     function executeTrusteeWill(address userAddress) private view {

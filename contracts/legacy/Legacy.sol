@@ -5,113 +5,113 @@ pragma solidity >=0.5.0 <0.9.0;
 import "./TrusteeSelection.sol";
 
 contract Legacy {
-    // enum triggerType{ INACTIVITY, CUSTODIAN, TRUSTEE }
-    uint256 numWills;
-
+    uint256 numWill;
     TrusteeSelection trusteeSelection;
-    address _owner = msg.sender;
-    address[] userList;
-    mapping(address => Will) users;
+    mapping(address => will) users;
 
-    
-    struct Will {
-        uint id;
-        address owner;
-        address trusteeAdd;
-        bool initalized; //false by default, helps to check if will exist
-        bool trustee;
-        bool inactivity;
-        bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform 
-        bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user 
+    struct will {
+        uint256 id;
+        address trusteeAddress;
+        bool trusteeTrigger; // true = trustee, false = inactivity
+        bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform
+        bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user
         bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
-        uint inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
+        uint256 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
         mapping(address => uint256) beneficiaries;
     }
 
-    
+    event add_will(uint256 id);
 
-    constructor(TrusteeSelection trusteeSelection) public {
-        trusteeSelection = trusteeSelection;
-    }
+    function addWill(
+        address trusteeAddress,
+        bool trusteeTrigger,
+        bool ownWallet,
+        bool ownLegacyToken,
+        bool convertLegacyPOW,
+        uint256 inactivityDays,
+        address[] memory beneficiariesAddress,
+        uint256[] memory amount
+    ) public returns (uint256) {
+        require(
+            users[msg.sender].id == 0,
+            "Already has a will with Legacy, use update will function instead"
+        );
+        trusteeTrigger
+            ? require(
+                trusteeAddress != address(0),
+                "Cannot have empty trustee address when trustee option is selected"
+            )
+            : require(
+                inactivityDays >= 365,
+                "Please set inactivity days to be at least 365 days"
+            );
+        require(
+            beneficiariesAddress.length != 0 &&
+                beneficiariesAddress.length == amount.length,
+            "Please check beneficiaries and amount information"
+        );
 
+        will storage userWill = users[msg.sender];
+        userWill.id = numWill++;
+        userWill.trusteeAddress = trusteeAddress;
+        userWill.trusteeTrigger = trusteeTrigger;
+        userWill.ownWallet = ownWallet;
+        userWill.ownLegacyToken = ownLegacyToken;
+        userWill.convertLegacyPOW = convertLegacyPOW;
+        userWill.inactivityDays = inactivityDays;
+        addBeneficiares(beneficiariesAddress, amount);
 
-    modifier validUser(address user) {
-        require(users[user].initalized);
-        _;
-    }
-
-    function addUser(address trusteeAdd, bool trusteeOption, bool inactivityOption,
-     bool ownWallet, bool ownLegacyToken,bool convertLegacyPOW, uint256 inactivityDays,
-     address[] memory beneficiaries_address, uint256[] memory amount)  public {
-        require(users[msg.sender].initalized == false, "Already has a will with Legacy, use update will function instead");
-        numWills++;
-        Will storage user_will = users[msg.sender];
-        user_will.id = numWills;
-        user_will.owner = msg.sender;
-        user_will.initalized = true;
-        user_will.trustee = trusteeOption;
-        user_will.trusteeAdd = trusteeAdd; 
-        user_will.inactivity = inactivityOption;
-        user_will.ownWallet = ownWallet;
-        user_will.ownLegacyToken = ownLegacyToken;
-        user_will.convertLegacyPOW = convertLegacyPOW;
-        user_will.inactivityDays = inactivityDays;
-        addBeneficiares(beneficiaries_address, amount);
-
-        if(user_will.ownWallet){
-            // Seek approval to transfer his asset 
+        if (userWill.ownWallet) {
+            // Seek approval to transfer his asset
         }
-        if(user_will.ownLegacyToken){
+        if (userWill.ownLegacyToken) {
             // to convert $$ into Legacy token
         }
-        if(user_will.trustee){
-            require(trusteeAdd != address(0), "Cannot have empty trustee address, when trustee option is selected");
-        }
+
+        emit add_will(numWill);
+        return numWill;
     }
 
-
-    function addBeneficiares(address[] memory beneficiaries_address, uint256[] memory amount) public returns (bool) {
-        Will storage user_will = users[msg.sender];
-        numWills++;
-        for(uint i = 0; amount.length < i; i++) {
-            address bene = beneficiaries_address[i];
-            uint256 amt = amount[i];
-            user_will.beneficiaries[bene] = amt;
+    function addBeneficiares(
+        address[] memory beneficiariesAddress,
+        uint256[] memory amount
+    ) private {
+        will storage userWill = users[msg.sender];
+        for (uint256 i = 0; i < amount.length; i++) {
+            userWill.beneficiaries[beneficiariesAddress[i]] = amount[i];
         }
-        return true;
     }
-
 
     function executeWill(address userAddress) private view {
-        require(users[userAddress].owner != address(0), "User does not exist");
-        Will storage will = users[userAddress];
-        if(will.trustee) {
+        require(users[userAddress].id != 0, "User does not exist");
+        will storage userWill = users[userAddress];
+        if (userWill.trusteeTrigger) {
             executeTrusteeWill(userAddress);
-        }else if (will.inactivity){
+        } else {
             executeInactivityWill(userAddress);
-        }else{
-            executeCustodianWill(userAddress);
         }
     }
 
-    function executeTrusteeWill(address userAddress) private view { //view parameter to be deleted. 
-        require(users[userAddress].owner != address(0), "User does not exist");
-        require(users[userAddress].trusteeAdd == msg.sender);
+    function executeTrusteeWill(address userAddress) private view {
+        //view parameter to be deleted.
+        require(users[userAddress].id != 0, "User does not exist");
+        require(users[userAddress].trusteeAddress == msg.sender);
         //pass
     }
 
-    function executeInactivityWill(address userAddress) private view {  //view parameter to be deleted.
+    function executeInactivityWill(address userAddress) private view {
+        //view parameter to be deleted.
         // TODO
         // require to be executed only by smart contract
         // require to inactivity days to be >= num of inactivity days set at point of deploying smart contract
         // Need to transfer asset from user wallet to designated address
     }
 
-    function executeCustodianWill(address userAddress) private view {  //view parameter to be deleted.
+    /* function executeCustodianWill(address userAddress) private view {
+        //view parameter to be deleted.
         // TODO
         // require to be executed only by smart contract
         // require to inactivity days to be >= num of inactivity days set at point of deploying smart contract
         // Legacy platform holds the asset
-    }
-
+    } */
 }

@@ -3,7 +3,6 @@ pragma solidity >=0.5.0 <0.9.0;
 
 import "./ERC20.sol";
 
-
 contract LegacyToken {
     ERC20 erc20Contract;
     uint256 currentSupply;

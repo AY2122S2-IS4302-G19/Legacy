@@ -11,21 +11,20 @@ contract('Legacy', function (accounts) {
         legacyInstance = await Legacy.deployed();
     });
     console.log("Testing Legacy Contract");
-
     it('Add Will', async () => {
         let will1 = await legacyInstance.createWill(
-            [accounts[5], accounts[6]],
-            accounts[5],
+            [accounts[2], accounts[3]],
+            accounts[2],
             1,
             false,
             false,
             false,
             false,
             366,
-            [accounts[2]],
+            [accounts[4]],
             [10],
-            { from: accounts[1], value: 1000000000000000000 }
+            { from: accounts[1] }
         );
-        truffleAssert.eventEmitted(will1, 'add_will');
+        truffleAssert.eventEmitted(will1, 'addingWill');
     })
 })

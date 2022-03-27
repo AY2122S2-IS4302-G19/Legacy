@@ -6,23 +6,25 @@ import "./WillStorage.sol";
 contract Legacy {
     WillStorage willStorage;
 
-    constructor (WillStorage _willStorage) public {
-        willStorage = _willStorage;
+    constructor(WillStorage ws) public {
+        willStorage = ws;
     }
+
+    event addingWill();
 
     function createWill(
         address[] memory trustees,
         address custodian,
-        uint256 custodianAccess,
+        uint8 custodianAccess,
         bool trusteeTrigger,
         bool ownWallet,
         bool ownLegacyToken,
         bool convertLegacyPOW,
-        uint256 inactivityDays,
+        uint16 inactivityDays,
         address[] memory beneficiariesAddress,
         uint256[] memory amount
-    ) public returns (uint256) {
-        return willStorage.addWill(
+    ) public {
+        willStorage.addWill(
             msg.sender,
             trustees,
             custodian,
@@ -35,6 +37,7 @@ contract Legacy {
             beneficiariesAddress,
             amount
         );
+        emit addingWill();
     }
 
     function executeWill(address willWriter) private view {

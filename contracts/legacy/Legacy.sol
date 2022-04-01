@@ -14,6 +14,7 @@ contract Legacy {
     event addingWill();
     event updatingWill();
     event deletingWill();
+    event updatingBeneficiaries();
 
     function createWill(
         address[] memory trustees,
@@ -55,6 +56,7 @@ contract Legacy {
         require(beneficiariesAddress.length == weights.length);
         require(equals100pct(weights),'Weight does not add up to 100');
         willStorage.updateBeneficiares(msg.sender, beneficiariesAddress, weights);
+        emit updatingBeneficiaries();
     }
 
     function equals100pct(uint256[] memory weights) private pure returns(bool){
@@ -62,7 +64,7 @@ contract Legacy {
         for(uint8 i = 0; i < weights.length; i++){
             total += weights[i];
         }
-        return total == 1;
+        return total == 100;
     }
 
     function updateWill(

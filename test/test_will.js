@@ -22,9 +22,54 @@ contract('Legacy', function (accounts) {
             false,
             366,
             [accounts[4]],
-            [10],
-            { from: accounts[1] }
+            [1],
+            { from: accounts[1], value: 10**18 }
         );
         truffleAssert.eventEmitted(will1, 'addingWill');
     })
+
+    it("check balances", async () =>{
+        let bal = await legacyInstance.getBalances();
+        assert(bal == 10**18)
+    })
+
+    it("Updating Will", async () => {
+        let will1 = await legacyInstance.createWill(
+            [accounts[2], accounts[3]],
+            accounts[2],
+            1,
+            false,
+            false,
+            false,
+            false,
+            366,
+            [accounts[4]],
+            [1],
+            { from: accounts[1] }
+        );
+
+        let updateWill1 = await legacyInstance.updateWill(
+            [accounts[2], accounts[3]],
+            accounts[2],
+            1,
+            false,
+            false,
+            false,
+            true,
+            366,
+            [accounts[4]],
+            [1],
+            {from: accounts[1]}
+        );
+        truffleAssert.eventEmitted(updateWill1, "updatingWill");            
+    })
+
+    it("Removing will", async ()=>{
+        let delete1 = await legacyInstance.deleteWill({from:accounts[1]});
+        truffleAssert.eventEmitted(delete1, 'deletingWill');
+        
+    })
+
+
+    
 })

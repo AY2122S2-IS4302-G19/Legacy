@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.9.0;
 
+
+// - Get/Update/Remove Will (Darren)
+// - Beneficiaries' Weights (Darren)
+// - Handle transferring assets from wallet to Legacy platform ("Custodian  Will") (Darren)
+
+
 import "../legacytoken/LegacyToken.sol";
 
 contract WillStorage {
@@ -21,17 +27,38 @@ contract WillStorage {
 
     struct Will {
         uint256 id;
+        uint256 balances;
         address willWriter;
         address custodian;
         uint8 custodianAccess;
         address[] trustees;
+        bool initalised;
         bool trusteeTrigger; // true = trustee, false = inactivity
         bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform
         bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user
         bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
         uint16 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
+        address[] beneficiariesAddress;
         mapping(address => uint256) beneficiaries;
     }
+
+    event updatingWill(address willWriter);
+
+
+    // Getter functions
+    // function getWill(address willWriter) public view returns(Will memory){
+    //     require(hasWill(willWriter));
+    //     Will storage will = users[willWriter];
+    //     bool isTrustee = inTrustees(willWriter, msg.sender);
+    //     require(msg.sender == willWriter || isTrustee, "Only owner/ trustee are able to check for will");
+    //     return will;
+    // }
+
+    function getBenficiariesAddress(address willWriter) public view returns(address[] memory){
+        require(hasWill(willWriter));
+        return users[willWriter].beneficiariesAddress;
+    }
+
 
     function hasWill(address willWriter) public view returns (bool) {
         return users[willWriter].id != 0;
@@ -43,6 +70,7 @@ contract WillStorage {
 
     function addWill(
         address willWriter,
+        uint256 balances,
         address[] memory trustees,
         address custodian,
         uint8 custodianAccess,
@@ -52,8 +80,8 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory amount
-    ) public returns (uint256) {
+        uint256[] memory weight
+    ) public payable returns (uint256) {
         require(
             users[willWriter].id == 0,
             "Already has a will with Legacy, use update will function instead"
@@ -69,11 +97,13 @@ contract WillStorage {
             );
         require(
             beneficiariesAddress.length != 0 &&
-                beneficiariesAddress.length == amount.length,
-            "Please check beneficiaries and amount information"
+                beneficiariesAddress.length == weight.length,
+            "Please check beneficiaries and weight information"
         );
 
         Will storage userWill = users[willWriter];
+        userWill.balances = balances;
+        userWill.initalised = true;
         userWill.id = numWill++;
         userWill.willWriter = willWriter;
         userWill.custodian = custodian;
@@ -84,15 +114,51 @@ contract WillStorage {
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = inactivityDays;
-        addBeneficiares(willWriter, beneficiariesAddress, amount);
+        userWill.beneficiariesAddress = beneficiariesAddress;
+        addBeneficiares(willWriter, beneficiariesAddress, weight);
 
         if (userWill.ownWallet) {
             // Seek approval to transfer his asset
         }
         if (userWill.ownLegacyToken) {
             // to convert $$ into Legacy token
+
         }
         return numWill;
+    }
+
+    function updateWill(       
+        address willWriter,
+        address[] memory trustees,
+        address custodian,
+        uint8 custodianAccess,
+        bool trusteeTrigger,
+        bool ownWallet,
+        bool ownLegacyToken,
+        bool convertLegacyPOW,
+        uint16 inactivityDays,
+        address[] memory beneficiariesAddress,
+        uint256[] memory weight) public {
+        require(hasWill(willWriter), "No existing will");
+
+        Will storage userWill = users[willWriter];
+        userWill.custodian = custodian;
+        userWill.custodianAccess = custodianAccess;
+        userWill.trustees = trustees;
+        userWill.trusteeTrigger = trusteeTrigger;
+        userWill.ownWallet = ownWallet;
+        userWill.ownLegacyToken = ownLegacyToken;
+        userWill.convertLegacyPOW = convertLegacyPOW;
+        userWill.inactivityDays = inactivityDays;
+        updateBeneficiares(willWriter, beneficiariesAddress, weight);
+
+
+    }
+
+    function removeWill(address willWriter) public {
+        require(hasWill(willWriter));
+        require(tx.origin == users[willWriter].willWriter, "Only owner can remove a will");
+        delete users[willWriter];
     }
 
     function addTrustee(
@@ -161,11 +227,11 @@ contract WillStorage {
     function addBeneficiares(
         address willWriter,
         address[] memory beneficiariesAddress,
-        uint256[] memory amount
+        uint256[] memory weight
     ) private {
         Will storage userWill = users[willWriter];
         for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
-            userWill.beneficiaries[beneficiariesAddress[i]] = amount[i];
+            userWill.beneficiaries[beneficiariesAddress[i]] = weight[i];
         }
     }
 
@@ -177,6 +243,30 @@ contract WillStorage {
         for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
             userWill.beneficiaries[beneficiariesAddress[i]] = 0;
         }
+    }
+
+    function updateBeneficiares(address willWriter, address[] memory beneficiariesAddress,uint256[] memory weights) public {
+        require(hasWill(willWriter), "No existing will");
+        require(tx.origin == willWriter, "Only owner can update beneficiares");
+        Will storage will = users[willWriter];
+        address[] storage currentBeneficiariesAddress = will.beneficiariesAddress;
+        mapping(address => uint256) storage currentBeneficiariesMapping = will.beneficiaries;
+
+        // Removing the existing beneficiaries
+        for (uint256 i = 0; i < currentBeneficiariesAddress.length; i++){
+            address add = currentBeneficiariesAddress[i];
+            delete currentBeneficiariesMapping[add];
+        }
+
+        //Replacing with new beneficiaries
+        will.beneficiariesAddress = beneficiariesAddress;
+
+        for (uint256 i = 0; i < beneficiariesAddress.length; i ++){
+            address add = beneficiariesAddress[i];
+            uint256 weight = weights[i];
+            will.beneficiaries[add] = weight;
+        }
+
     }
 
     // Modifiers and authorization

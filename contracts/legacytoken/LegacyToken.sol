@@ -27,6 +27,12 @@ contract LegacyToken {
         uint256 amt = msg.value / 100000000000000000;
         erc20Contract.transferFrom(legacyAccount, msg.sender, amt);
         erc20Contract.mint(msg.sender, amt);
+
+     //is new   
+    struct legacyToken {
+        uint256 value;
+        address owner;
+        address prevOwner;
     }
     
 }

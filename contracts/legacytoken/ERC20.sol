@@ -61,9 +61,9 @@ contract ERC20 {
     mapping(address => uint256) balances;
     
     
-    string public constant name = "DiceToken";
-    string public constant symbol = "DT";
-    uint8 public constant decimals = 18;
+    string public constant name = "LegacyToken";
+    string public constant symbol = "LT";
+    uint8 public constant decimals = 17;
     uint256 totalSupply_;
   
     event Transfer(address indexed from, address indexed to, uint256 value);

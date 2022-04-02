@@ -45,20 +45,6 @@ contract WillStorage {
     event updatingWill(address willWriter);
 
 
-    // Getter functions
-    // function getWill(address willWriter) public view returns(Will memory){
-    //     require(hasWill(willWriter));
-    //     Will storage will = users[willWriter];
-    //     bool isTrustee = inTrustees(willWriter, msg.sender);
-    //     require(msg.sender == willWriter || isTrustee, "Only owner/ trustee are able to check for will");
-    //     return will;
-    // }
-
-    function getBenficiariesAddress(address willWriter) public view authorize(willWriter, tx.origin) returns(address[] memory){
-        require(hasWill(willWriter));
-        return users[willWriter].beneficiariesAddress;
-    }
-
 
 
 
@@ -317,5 +303,14 @@ contract WillStorage {
         }
         return total == 100;
     }
+
+    // Getter functions
+    function getBenficiariesAddress(address willWriter) public view authorize(willWriter, tx.origin) returns(address[] memory){
+        require(hasWill(willWriter));
+        return users[willWriter].beneficiariesAddress;
+    }
+
+
+
 
 }

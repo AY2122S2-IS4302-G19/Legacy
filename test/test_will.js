@@ -28,7 +28,54 @@ contract('Legacy', function (accounts) {
         truffleAssert.eventEmitted(will1, 'addingWill');
     })
 
+    it("Add will fails", async () => {
 
+        // Own wallet is false, but yet no ether is transferred to the platform
+        await truffleAssert.fails(legacyInstance.createWill(
+            [accounts[2], accounts[3]],
+            accounts[2],
+            1,
+            false,
+            false,
+            false,
+            false,
+            366,
+            [accounts[4]],
+            [100],
+            {from: accounts[1], value: 0 }
+        ),truffleAssert.ErrorType.REVERT,"No ether received when legacy platform as custodian is chosen")
+
+        // Inactivity less than 365 days
+        await truffleAssert.fails(legacyInstance.createWill(
+            [accounts[2], accounts[3]],
+            accounts[2],
+            1,
+            false,
+            false,
+            false,
+            false,
+            1,
+            [accounts[4]],
+            [100],
+            {from: accounts[1], value: 10 }
+        ),truffleAssert.ErrorType.REVERT,"Please set inactivity days to be at least 365 days")
+        
+        // Beneficiaries and weight information inconsistent
+        await truffleAssert.fails(legacyInstance.createWill(
+            [accounts[2], accounts[3]],
+            accounts[2],
+            1,
+            false,
+            false,
+            false,
+            false,
+            366,
+            [accounts[4]],
+            [100,10],
+            {from: accounts[1], value: 10 }
+        ),truffleAssert.ErrorType.REVERT,"Please check beneficiaries and weights information")
+        
+    })
 
     it("check balances", async () =>{
         let bal = await legacyInstance.getBalances();

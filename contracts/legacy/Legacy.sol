@@ -2,12 +2,11 @@
 pragma solidity >=0.5.0 <0.9.0;
 // pragma experimental ABIEncoderV2; //Need to be included for Will struct to be used as parameter inside functions
 
-import "./TrusteeSelection.sol";
+import "contracts/legacy/TrusteeSelection.sol";
 
 contract Legacy {
     // enum triggerType{ INACTIVITY, CUSTODIAN, TRUSTEE }
     uint256 numWills;
-
     TrusteeSelection trusteeSelection;
     address _owner = msg.sender;
     address[] userList;

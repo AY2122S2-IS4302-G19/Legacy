@@ -63,16 +63,14 @@ contract ERC20 {
     
     string public constant name = "LegacyToken";
     string public constant symbol = "LT";
-    uint8 public constant decimals = 17;
+    uint8 public constant decimals = 18;
     uint256 totalSupply_;
   
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Mint(address indexed to, uint256 amount);
+    event Unmint(address indexed from, uint256 amount);
     event MintFinished();
-
-  
-
 
 
   /**
@@ -168,6 +166,30 @@ contract ERC20 {
     emit Transfer(address(0), _to, _amount);
     return true;
   }
+
+  function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (bool) {
+    balances[_from] = balances[_from].sub(_amount);
+    uint256 transferFee;
+    uint256 remainingLT;
+
+    if(_amount >= 50) {
+      transferFee = _amount.div(50);
+      remainingLT = _amount.sub(transferFee);
+    } else {
+      transferFee = _amount;
+      remainingLT = 0;
+    }
+    
+    balances[owner] = balances[owner].add(transferFee);
+    totalSupply_ = totalSupply_.sub(remainingLT);
+
+    approve(tx.origin, _amount); 
+    emit Unmint(_from, _amount);
+    emit Transfer(_from, address(0), remainingLT);
+    emit Transfer(_from, owner, transferFee);
+    return true;
+  }
+
 
   /**
    * @dev Function to stop minting new tokens.

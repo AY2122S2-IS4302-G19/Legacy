@@ -5,13 +5,13 @@ import "../legacytoken/LegacyToken.sol";
 
 contract WillStorage {
     LegacyToken legacyToken;
+    uint256 numWill;
+    mapping(address => Will) users;
 
     constructor(LegacyToken lt) public {
         legacyToken = lt;
+        numWill = 1;
     }
-
-    uint256 numWill;
-    mapping(address => Will) users;
 
     /* ACCESS LEVEL
     0: Trustees/Custodian has no access to any features.

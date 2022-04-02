@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.9.0;
+pragma solidity ^0.5.0;
 
 import "./ERC20.sol";
+import "./LegacyTokenDataStorage.sol";
 
 
 //Requries legal authority - suppose legal authorithy have address of ___
@@ -12,9 +13,9 @@ import "./ERC20.sol";
 
 contract LegacyToken {
     ERC20 erc20Contract;
+    LegacyTokenDataStorage data;
     address legacyAccount;
     uint256 getCreditFee = 1;
-    mapping(address => bytes) public amount;
 
     constructor() public {
         ERC20 e = new ERC20();
@@ -27,12 +28,13 @@ contract LegacyToken {
         uint256 amt = msg.value / 100000000000000000;
         erc20Contract.transferFrom(legacyAccount, msg.sender, amt);
         erc20Contract.mint(msg.sender, amt);
+    }
 
-     //is new   
+ /*    //is new   
     struct legacyToken {
         uint256 value;
         address owner;
         address prevOwner;
-    }
+    }*/
     
 }

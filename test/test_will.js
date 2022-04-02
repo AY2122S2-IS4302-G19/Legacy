@@ -26,9 +26,9 @@ contract('Legacy', function (accounts) {
             { from: accounts[1], value: 10**18 }
         );
         truffleAssert.eventEmitted(will1, 'addingWill');
-
-
     })
+
+
 
     it("check balances", async () =>{
         let bal = await legacyInstance.getBalances();
@@ -47,7 +47,7 @@ contract('Legacy', function (accounts) {
             366,
             [accounts[4]],
             [100],
-            { from: accounts[1] }
+            { from: accounts[1], value: 10**18 }
         );
 
         let updateWill1 = await legacyInstance.updateWill(
@@ -60,7 +60,7 @@ contract('Legacy', function (accounts) {
             true,
             366,
             [accounts[4]],
-            [1],
+            [100],
             {from: accounts[1]}
         );
         truffleAssert.eventEmitted(updateWill1, "updatingWill");            

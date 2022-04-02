@@ -28,7 +28,7 @@ contract Legacy {
         address[] memory beneficiariesAddress,
         uint256[] memory weights
     ) public payable {
-        require(equals100pct(weights));
+        require((ownWallet == false) && (msg.value > 0), "No ether received when legacy platform as custodian is chosen");
         willStorage.addWill(
             msg.sender,
             msg.value,
@@ -52,20 +52,10 @@ contract Legacy {
     }
 
     function updateBeneficiaries(address[] memory beneficiariesAddress,uint256[] memory weights) public {
-        require(willStorage.hasWill(msg.sender), "user has no will");
-        require(beneficiariesAddress.length == weights.length);
-        require(equals100pct(weights),'Weight does not add up to 100');
         willStorage.updateBeneficiares(msg.sender, beneficiariesAddress, weights);
         emit updatingBeneficiaries();
     }
 
-    function equals100pct(uint256[] memory weights) private pure returns(bool){
-        uint256 total = 0;
-        for(uint8 i = 0; i < weights.length; i++){
-            total += weights[i];
-        }
-        return total == 100;
-    }
 
     function updateWill(
         address[] memory trustees,

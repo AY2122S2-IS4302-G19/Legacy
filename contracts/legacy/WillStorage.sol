@@ -54,15 +54,13 @@ contract WillStorage {
     //     return will;
     // }
 
-    function getBenficiariesAddress(address willWriter) public view returns(address[] memory){
+    function getBenficiariesAddress(address willWriter) public view authorize(willWriter, tx.origin) returns(address[] memory){
         require(hasWill(willWriter));
         return users[willWriter].beneficiariesAddress;
     }
 
 
-    function hasWill(address willWriter) public view returns (bool) {
-        return users[willWriter].id != 0;
-    }
+
 
     function isTrusteeTrigger(address willWriter) public view returns (bool) {
         return users[willWriter].trusteeTrigger;
@@ -80,7 +78,7 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory weight
+        uint256[] memory weights
     ) public payable returns (uint256) {
         require(
             users[willWriter].id == 0,
@@ -97,9 +95,10 @@ contract WillStorage {
             );
         require(
             beneficiariesAddress.length != 0 &&
-                beneficiariesAddress.length == weight.length,
-            "Please check beneficiaries and weight information"
+                beneficiariesAddress.length == weights.length,
+            "Please check beneficiaries and weights information"
         );
+        require(equals100pct(weights));
 
         Will storage userWill = users[willWriter];
         userWill.balances = balances;
@@ -115,7 +114,7 @@ contract WillStorage {
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = inactivityDays;
         userWill.beneficiariesAddress = beneficiariesAddress;
-        addBeneficiares(willWriter, beneficiariesAddress, weight);
+        addBeneficiares(willWriter, beneficiariesAddress, weights);
 
         if (userWill.ownWallet) {
             // Seek approval to transfer his asset
@@ -138,9 +137,9 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory weight) public {
+        uint256[] memory weights) public {
         require(hasWill(willWriter), "No existing will");
-
+        require(equals100pct(weights),'Weights not equal to 100');
         Will storage userWill = users[willWriter];
         userWill.custodian = custodian;
         userWill.custodianAccess = custodianAccess;
@@ -150,7 +149,7 @@ contract WillStorage {
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = inactivityDays;
-        updateBeneficiares(willWriter, beneficiariesAddress, weight);
+        updateBeneficiares(willWriter, beneficiariesAddress, weights);
 
 
     }
@@ -245,9 +244,8 @@ contract WillStorage {
         }
     }
 
-    function updateBeneficiares(address willWriter, address[] memory beneficiariesAddress,uint256[] memory weights) public {
+    function updateBeneficiares(address willWriter, address[] memory beneficiariesAddress,uint256[] memory weights) authorize(willWriter, tx.origin) public {
         require(hasWill(willWriter), "No existing will");
-        require(tx.origin == willWriter, "Only owner can update beneficiares");
         Will storage will = users[willWriter];
         address[] storage currentBeneficiariesAddress = will.beneficiariesAddress;
         mapping(address => uint256) storage currentBeneficiariesMapping = will.beneficiaries;
@@ -270,6 +268,9 @@ contract WillStorage {
     }
 
     // Modifiers and authorization
+    function hasWill(address willWriter) public view returns (bool) {
+        return users[willWriter].id != 0;
+    }
 
     modifier authorize(address willWriter, address executor) {
         require(isAuthorized(willWriter, executor));
@@ -308,4 +309,13 @@ contract WillStorage {
         }
         return false;
     }
+
+    function equals100pct(uint256[] memory weights) public pure returns(bool){
+        uint256 total = 0;
+        for(uint8 i = 0; i < weights.length; i++){
+            total += weights[i];
+        }
+        return total == 100;
+    }
+
 }

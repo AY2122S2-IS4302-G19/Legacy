@@ -10,6 +10,13 @@ contract LegacyInvestment is Ownable {
     mapping(address => uint256) buyPrices;
     mapping(address => uint256) sellPrices;
 
+    struct Investment {
+        uint256 id,
+        string stockCode,
+        uint256 buyPrice,
+        uint256 sellPrice,
+    }
+
     constructor(LegacyToken lt) public {
         legacyToken = lt;
         owner = msg.sender;
@@ -27,7 +34,7 @@ contract LegacyInvestment is Ownable {
 
     // emit event
     function buy (uint value, uint stock) {
-        
+
     }
 
     // emit event 

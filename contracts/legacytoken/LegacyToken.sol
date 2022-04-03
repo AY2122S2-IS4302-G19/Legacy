@@ -14,6 +14,9 @@ contract LegacyToken {
     address payable legacyOwner;
     uint256 getCreditFee = 1;
 
+    address[] users; //users address
+    uint256 interestRate; // for investment
+
     constructor() public {
         ERC20 e = new ERC20();
         erc20Contract = e;
@@ -28,12 +31,17 @@ contract LegacyToken {
     function getLegacyToken() public payable {
         uint256 amt = 2 * msg.value / 1000000000000000000;
         erc20Contract.mint(msg.sender, amt);
+
+        // add to username if does not exist in array
+        
+
         emit getToken();
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
         require(tokens > 0, "You need to sell at least some tokens");
         uint256 userBalance = erc20Contract.balanceOf(msg.sender);
+        
         require(userBalance >= tokens, "Your token balance is lower than the amount you want to sell");
         uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
         msg.sender.transfer(toPay);
@@ -45,6 +53,30 @@ contract LegacyToken {
         erc20Contract.transfer(toPerson,tokens);
         emit toTransferToken(toPerson, tokens);
     }
+
+
+
+    // method 1: specify payout amount, require owner to execute it
+
+    function payoutInterest() public payable onlyOwner() {
+        //get exchange rate of eth -> token
+        uint256 payoutInToken = 2 * msg.value / 1000000000000000000;
+        
+
+        getLegacyToken(){ value: msg.value }(msg.sender);
+
+        //calculate earning per token
+        uint256 profitPerToken = payoutInToken / erc20Contract.totalSupply();
+        
+        for (uint i = 0; i < users.length; i++) {
+            uint256 toAdd = profitPerToken * erc20Contract.balanceOf([users[i]]);
+            transferToken(user[i], toAdd);
+        }
+    }
+
+    //method 2: fixed interest rate, monthly earnings, owner must have enough tokens in account
+
+
 
     function checkLTCredit() notOwner public view returns (uint256) {
         return erc20Contract.balanceOf(msg.sender);

@@ -1,17 +1,33 @@
 pragma solidity ^0.5.0;
 
-contract LegacyInvestment {
+import "../legacytoken/LegacyToken.sol";
 
+contract LegacyInvestment is Ownable {
+
+    LegacyToken legacyToken;
     address owner;
+    uint256 interestRate;
+    mapping(address => uint256) buyPrices;
+    mapping(address => uint256) sellPrices;
 
-    modifier ownerOnly(address _owner) {
-        require(owner == _owner);
+    constructor(LegacyToken lt) public {
+        legacyToken = lt;
+        owner = msg.sender;
+    }
+
+    modifier ownerOnly() {
+        require(msg.sender == owner, "You are not the owner of the contract");
         _;
+    }
+
+     // set interest rate 
+    function setInterestRate(uint256 rate) public ownerOnly() {
+        interestRate = rate;
     }
 
     // emit event
     function buy (uint value, uint stock) {
-
+        
     }
 
     // emit event 
@@ -19,7 +35,7 @@ contract LegacyInvestment {
 
     }
 
-    function withdraw(uint amt) {
+    function withdraw(uint amt) ownerOnly() {
 
     }
 
@@ -37,7 +53,5 @@ contract LegacyInvestment {
 
     // set duration to payout earnings
 
-
-    // set interest rate 
 
 }

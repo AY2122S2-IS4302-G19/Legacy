@@ -34,7 +34,7 @@ contract LegacyToken {
         msg.sender.transfer(toPay);
     }
 
-    function checkTokenAmount() notOwner public view returns (uint256) {
+    function getTokenAmount() notOwner public view returns (uint256) {
         return erc20Contract.balanceOf(msg.sender);
     }
 
@@ -42,7 +42,7 @@ contract LegacyToken {
         return erc20Contract.totalSupply();
     }
 
-    function balanceOfContractOwner() onlyOwner public view returns (uint256) {
+    function getTokenAmount_Owner() onlyOwner public view returns (uint256) {
         return erc20Contract.balanceOf(address(this));
     }
 

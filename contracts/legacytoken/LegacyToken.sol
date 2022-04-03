@@ -22,7 +22,7 @@ contract LegacyToken {
 
     event getToken();
     event sellToken(uint256 tokens); 
-    event transferToken(address toPerson, uint256 tokens); 
+    event toTransferToken(address toPerson, uint256 tokens); 
 
 
     function getLegacyToken() public payable {
@@ -43,7 +43,7 @@ contract LegacyToken {
     function transferToken(address toPerson, uint256 tokens) public returns (bool) {
         require(tokens > 0, "You need to sell at least some tokens");
         erc20Contract.transfer(toPerson,tokens);
-         emit transferToken(toPerson, tokens);
+        emit toTransferToken(toPerson, tokens);
     }
 
     function checkLTCredit() notOwner public view returns (uint256) {

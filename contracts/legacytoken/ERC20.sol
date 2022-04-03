@@ -208,6 +208,10 @@ contract ERC20 {
   function getOwner() public view returns (address){
       return owner;
   }
+
+  function getEther() onlyOwner public view returns (uint256){
+    return owner.balance;
+  }
   
   
    modifier onlyOwner() {

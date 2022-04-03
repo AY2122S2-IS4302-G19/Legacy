@@ -26,6 +26,8 @@ contract LegacyToken {
     uint256 public numTokens = 0;
     mapping(uint256 => legacyToken) public tokens;
 
+    event transferLT(uint256 tokenId, address newlegacyAccount);
+
     //modifier to ensure a function is callable only by its legacyAccount
     modifier legacyAccountOnly(uint256 tokenId) {
         require(tokens[tokenId].legacyAccount == msg.sender);
@@ -40,6 +42,8 @@ contract LegacyToken {
     function transfer(uint256 tokenId, address newlegacyAccount) public validTokenId(toknId) {
         tokens[tokenId].prevlegacyAccount = tokens[tokenId].legacyAccount;
         tokens[tokenId].legacyAccount = newlegacyAccount;
+
+        emit transferLT(tokenId, newlegacyAccount);
     }
 
     function checkCredit() public returns(uint256) {

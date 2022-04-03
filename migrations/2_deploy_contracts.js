@@ -11,5 +11,10 @@ module.exports = async (deployer, network, accounts) => {
   await deployer.deploy(WillStorage, LegacyToken.address);
   await deployer.deploy(DeathOracle);
   await deployer.deploy(TransactionOracle);
-  await deployer.deploy(Legacy, WillStorage.address, DeathOracle.address, TransactionOracle.address);
+  await deployer.deploy(
+    Legacy,
+    WillStorage.address,
+    DeathOracle.address,
+    TransactionOracle.address
+  );
 };

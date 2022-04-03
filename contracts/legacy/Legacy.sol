@@ -1,23 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.9.0;
 
-import "./WillStorage.sol";
-import "./apis/DeathOracle.sol";
-import "./apis/TransactionOracle.sol";
+import "contracts/legacy/TrusteeSelection.sol";
 
 contract Legacy {
-    WillStorage willStorage;
-    DeathOracle deathOracle;
-    TransactionOracle transactionOracle;
+    // enum triggerType{ INACTIVITY, CUSTODIAN, TRUSTEE }
+    uint256 numWills;
+    TrusteeSelection trusteeSelection;
+    address _owner = msg.sender;
+    address[] userList;
+    mapping(address => Will) users;
 
-    constructor(
-        WillStorage ws,
-        DeathOracle doracle,
-        TransactionOracle toracle
-    ) public {
-        willStorage = ws;
-        deathOracle = doracle;
-        transactionOracle = toracle;
+    
+    struct Will {
+        uint id;
+        address owner;
+        address trusteeAdd;
+        bool initalized; //false by default, helps to check if will exist
+        bool trustee;
+        bool inactivity;
+        bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform 
+        bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user 
+        bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
+        uint inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
+        mapping(address => uint256) beneficiaries;
+    }
+
+    
+
+    constructor(TrusteeSelection trusteeSelection) public {
+        trusteeSelection = trusteeSelection;
     }
 
     event addingWill();

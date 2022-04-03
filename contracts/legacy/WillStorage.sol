@@ -6,6 +6,7 @@ import "../legacytoken/LegacyToken.sol";
 contract WillStorage {
     LegacyToken legacyToken;
     uint256 numWill;
+    mapping(uint256 => address) usersAdd; // works just like an array but is cheaper to use mapping
     mapping(address => Will) users;
 
     constructor(LegacyToken lt) public {
@@ -23,13 +24,13 @@ contract WillStorage {
         uint256 id;
         address willWriter;
         address custodian;
-        uint8 custodianAccess;
+        uint256 custodianAccess;
         address[] trustees;
         bool trusteeTrigger; // true = trustee, false = inactivity
         bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform
         bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user
         bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
-        uint16 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
+        uint256 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
         mapping(address => uint256) beneficiaries;
     }
 
@@ -37,15 +38,15 @@ contract WillStorage {
         return users[willWriter].id != 0;
     }
 
-    function isTrusteeTrigger(address willWriter) public view returns (bool) {
-        return users[willWriter].trusteeTrigger;
+    function getNumWill() public view returns (uint256) {
+        return numWill;
     }
 
     function addWill(
         address willWriter,
         address[] memory trustees,
         address custodian,
-        uint8 custodianAccess,
+        uint256 custodianAccess,
         bool trusteeTrigger,
         bool ownWallet,
         bool ownLegacyToken,
@@ -85,6 +86,7 @@ contract WillStorage {
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = inactivityDays;
         addBeneficiares(willWriter, beneficiariesAddress, amount);
+        usersAdd[numWill] = willWriter;
 
         if (userWill.ownWallet) {
             // Seek approval to transfer his asset
@@ -93,6 +95,14 @@ contract WillStorage {
             // to convert $$ into Legacy token
         }
         return numWill;
+    }
+
+    function getAddressById(uint256 id) public view returns (address) {
+        return usersAdd[id];
+    }
+
+    function isTrusteeTrigger(address willWriter) public view returns (bool) {
+        return users[willWriter].trusteeTrigger;
     }
 
     function addTrustee(
@@ -217,5 +227,9 @@ contract WillStorage {
             }
         }
         return false;
+    }
+
+    function getInactivityDays(address add) public view returns (uint256) {
+        return users[add].inactivityDays;
     }
 }

@@ -20,10 +20,15 @@ contract LegacyToken {
         legacyOwner = msg.sender;
     }
 
+    event getToken();
+    event sellToken(uint256 tokens); 
+    event transferToken(address toPerson, uint256 tokens); 
+
 
     function getLegacyToken() public payable {
         uint256 amt = 2 * msg.value / 1000000000000000000;
         erc20Contract.mint(msg.sender, amt);
+        emit getToken();
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
@@ -32,9 +37,20 @@ contract LegacyToken {
         require(userBalance >= tokens, "Your token balance is lower than the amount you want sell");
         uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
         msg.sender.transfer(toPay);
+        emit sellToken(tokens);
     }
 
+<<<<<<< Updated upstream
     function checkTokenAmount() notOwner public view returns (uint256) {
+=======
+    function transferToken(address toPerson, uint256 tokens) public returns (bool) {
+        require(tokens > 0, "You need to sell at least some tokens");
+        erc20Contract.transfer(toPerson,tokens);
+         emit transferToken(toPerson, tokens);
+    }
+
+    function checkLTCredit() notOwner public view returns (uint256) {
+>>>>>>> Stashed changes
         return erc20Contract.balanceOf(msg.sender);
     }
 

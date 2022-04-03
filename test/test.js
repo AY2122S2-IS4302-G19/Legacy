@@ -7,7 +7,13 @@ var LegacyToken = artifacts.require("../contracts/legacyToken/LegacyToken.sol");
 
 contract('LegacyToken', function(accounts) {
     before(async () => {
-        legacyInstance = await Legacy.deployed();
         legacyTokenInstance = await LegacyToken.deployed();
     });
+
+    console.log("Testing Legacy Token Contract");
+
+    it('Cet LT Token', async() => {
+        let t1 = await legacyTokenInstance.getLegacyToken({from: accounts[1], value: 20000000000000000000});
+        truffleAssert.eventEmitted(t1, "getToken");
+    })
 }

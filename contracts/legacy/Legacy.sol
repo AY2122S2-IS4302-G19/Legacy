@@ -1,35 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.9.0;
 
-import "contracts/legacy/TrusteeSelection.sol";
+import "./WillStorage.sol";
+import "./apis/DeathOracle.sol";
+import "./apis/TransactionOracle.sol";
 
 contract Legacy {
-    // enum triggerType{ INACTIVITY, CUSTODIAN, TRUSTEE }
-    uint256 numWills;
-    TrusteeSelection trusteeSelection;
-    address _owner = msg.sender;
-    address[] userList;
-    mapping(address => Will) users;
+    WillStorage willStorage;
+    DeathOracle deathOracle;
+    TransactionOracle transactionOracle;
 
-    
-    struct Will {
-        uint id;
-        address owner;
-        address trusteeAdd;
-        bool initalized; //false by default, helps to check if will exist
-        bool trustee;
-        bool inactivity;
-        bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform 
-        bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user 
-        bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
-        uint inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
-        mapping(address => uint256) beneficiaries;
-    }
-
-    
-
-    constructor(TrusteeSelection trusteeSelection) public {
-        trusteeSelection = trusteeSelection;
+    constructor(
+        WillStorage ws,
+        DeathOracle doracle,
+        TransactionOracle toracle
+    ) public {
+        willStorage = ws;
+        deathOracle = doracle;
     }
 
     event addingWill();
@@ -92,7 +79,7 @@ contract Legacy {
         emit submittedDeathCert(willWriter);
     }
 
-    // just throw this method into the most used function and 
+    // just throw this method into the most used function and
     // that's how inactivity wills will get triggered
     function triggerInactivityWills() private view {
         for (uint256 i = 1; i <= willStorage.getNumWill(); i++) {

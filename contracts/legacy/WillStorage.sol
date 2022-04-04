@@ -53,7 +53,8 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory amount
+        uint256[] memory amount,
+        uint256 totalAmount
     ) public returns (uint256) {
         require(
             users[willWriter].id == 0,
@@ -176,6 +177,7 @@ contract WillStorage {
         Will storage userWill = users[willWriter];
         for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
             userWill.beneficiaries[beneficiariesAddress[i]] = amount[i];
+            userWill.totalAmount += amount[i];
         }
     }
 
@@ -185,6 +187,7 @@ contract WillStorage {
     ) private {
         Will storage userWill = users[willWriter];
         for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
+            userWill.totalAmount -= userWill.beneficiaries[beneficiariesAddress[i]];
             userWill.beneficiaries[beneficiariesAddress[i]] = 0;
         }
     }

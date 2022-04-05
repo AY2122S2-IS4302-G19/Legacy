@@ -168,27 +168,22 @@ contract ERC20 {
 
   function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (uint256) {
     balances[_from] = balances[_from].sub(_amount);
-    uint256 transferFee;
-    uint256 remainingLT;
+    uint256 etherFee = _amount.mul(1000000000000000000).div(2);
+    uint256 transferFee =  etherFee.mul(5);
+    transferFee = transferFee.div(1000);
+    uint256 tokenFee = transferFee.div(1000000000000000000).mul(2);
+    uint256 remainingLT = _amount.sub(tokenFee);
 
-    if(_amount >= 50) {
-      transferFee = _amount.div(50);
-      remainingLT = _amount.sub(transferFee);
-    } else {
-      transferFee = _amount;
-      remainingLT = 0;
-    }
-    
-    balances[owner] = balances[owner].add(transferFee);
+    balances[owner] = balances[owner].add(tokenFee);
     totalSupply_ = totalSupply_.sub(remainingLT);
     approve(tx.origin, _amount); 
 
     emit Unmint(_from, _amount);
-    emit Transfer(_from, owner, transferFee);
+    emit Transfer(_from, owner, tokenFee);
     emit Transfer(_from, address(0), remainingLT);
 
     if(remainingLT >0) {
-      return remainingLT/2*1000000000000000000;
+      return remainingLT/2* 1000000000000000000;
     } else {
       return 0;
     }

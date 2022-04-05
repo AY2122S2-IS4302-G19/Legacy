@@ -16,4 +16,4 @@ contract('LegacyToken', function(accounts) {
         let t1 = await legacyTokenInstance.getLegacyToken({from: accounts[1], value: 20000000000000000000});
         truffleAssert.eventEmitted(t1, "getToken");
     })
-}
+});

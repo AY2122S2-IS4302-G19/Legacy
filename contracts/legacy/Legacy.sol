@@ -7,6 +7,7 @@ import "./apis/TransactionOracle.sol";
 
 contract Legacy {
     WillStorage willStorage;
+    uint256 totalBalances;
     DeathOracle deathOracle;
     TransactionOracle transactionOracle;
 
@@ -20,6 +21,9 @@ contract Legacy {
     }
 
     event addingWill();
+    event updatingWill();
+    event deletingWill();
+    event updatingBeneficiaries();
     event executingTrusteeWill(address willWriter);
     event submittedDeathCert(address deceased);
 
@@ -38,9 +42,50 @@ contract Legacy {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
+        uint256[] memory weights
+    ) public payable {
+        require((ownWallet == false) && (msg.value > 0), "No ether received when legacy platform as custodian is chosen");
+        willStorage.addWill(
+            msg.sender,
+            msg.value,
+            trustees,
+            custodian,
+            custodianAccess,
+            trusteeTrigger,
+            ownWallet,
+            ownLegacyToken,
+            convertLegacyPOW,
+            inactivityDays,
+            beneficiariesAddress,
+            weights
+        );
+        totalBalances += msg.value;
+        emit addingWill();
+    }
+    
+    function getBalances() public view returns(uint256){
+        return address(this).balance;
+    }
+
+    function updateBeneficiaries(address[] memory beneficiariesAddress,uint256[] memory weights) public {
+        willStorage.updateBeneficiares(msg.sender, beneficiariesAddress, weights);
+        emit updatingBeneficiaries();
+    }
+
+
+    function updateWill(
+        address[] memory trustees,
+        address custodian,
+        uint8 custodianAccess,
+        bool trusteeTrigger,
+        bool ownWallet,
+        bool ownLegacyToken,
+        bool convertLegacyPOW,
+        uint16 inactivityDays,
+        address[] memory beneficiariesAddress,
         uint256[] memory amount
     ) public {
-        willStorage.addWill(
+        willStorage.updateWill(
             msg.sender,
             trustees,
             custodian,
@@ -53,7 +98,12 @@ contract Legacy {
             beneficiariesAddress,
             amount
         );
-        emit addingWill();
+        emit updatingWill();
+    }
+
+    function deleteWill() public{
+        willStorage.removeWill(msg.sender);
+        emit deletingWill();
     }
 
     function executeWill(address willWriter) private view hasWill(willWriter) {

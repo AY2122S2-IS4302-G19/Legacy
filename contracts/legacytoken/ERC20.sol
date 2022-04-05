@@ -1,5 +1,4 @@
-pragma solidity ^0.5.0;
-
+pragma solidity >=0.5.0 <0.9.0;
 //first need to approve the address of spender 
 // Check the allowance
 //Finally able to call transferFrom to transfer tokens
@@ -63,16 +62,14 @@ contract ERC20 {
     
     string public constant name = "LegacyToken";
     string public constant symbol = "LT";
-    uint8 public constant decimals = 18;
+    uint8 public constant decimals = 16;
     uint256 totalSupply_;
-  
+
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Mint(address indexed to, uint256 amount);
+    event Unmint(address indexed from, uint256 amount);
     event MintFinished();
-
-  
-
 
 
   /**
@@ -169,14 +166,29 @@ contract ERC20 {
     return true;
   }
 
-  /**
-   * @dev Function burn.
-   */
-  function burn(uint256 _amount) {
-      balances[tx.origin].add(_amount);
-      totalSupply_.add(_amount);
-      emit Transfer(address(0), tx.origin, _amount);
+  function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (uint256) {
+    balances[_from] = balances[_from].sub(_amount);
+    uint256 etherFee = _amount.mul(10000000000000000).div(2);
+    uint256 transferFee =  etherFee.mul(5);
+    transferFee = transferFee.div(1000);
+    uint256 tokenFee = transferFee.div(10000000000000000).mul(2);
+    uint256 remainingLT = _amount.sub(tokenFee);
+
+    balances[owner] = balances[owner].add(tokenFee);
+    totalSupply_ = totalSupply_.sub(remainingLT);
+    approve(tx.origin, _amount); 
+
+    emit Unmint(_from, _amount);
+    emit Transfer(_from, owner, tokenFee);
+    emit Transfer(_from, address(0), remainingLT);
+
+    if(remainingLT >0) {
+      return remainingLT.div(2).mul(10000000000000000);
+    } else {
+      return 0;
+    }
   }
+
 
   /**
    * @dev Function to stop minting new tokens.
@@ -191,6 +203,10 @@ contract ERC20 {
   function getOwner() public view returns (address){
       return owner;
   }
+
+  function getEther() onlyOwner public view returns (uint256){
+    return owner.balance;
+  }
   
   
    modifier onlyOwner() {
@@ -203,8 +219,4 @@ contract ERC20 {
     require(!mintingFinished);
     _;
   }
-
-
-
-    
 }

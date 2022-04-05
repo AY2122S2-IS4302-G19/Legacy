@@ -1,87 +1,82 @@
-// SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.9.0;
+pragma solidity ^0.5.0;
+
+import "./ERC20.sol";
+
+//Requries legal authority - suppose legal authorithy have address of ___
+//Since we are encouraging people to use our Token, there is no limit as to how much they can have
+//2 LT = 0.01 ether, 1 ether = 200 LT
+// 2% of LT token as transferFee for transferring from token other currency > token is transfered to owner. 98% of token is converted to ether sent to msg.sender
+
 
 import "./ERC20.sol";
 // import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 contract LegacyToken {
-    address legacyAccount;
-    uint256 public _price;
-    uint256 public comissionFee;
     ERC20 erc20Contract;
-    mapping(address => bytes) public amount;
+    address payable legacyOwner;
+    uint256 getCreditFee = 1;
+    
+    address[] users;
+    uint256 interestRate;
 
     constructor() public {
         ERC20 e = new ERC20();
         erc20Contract = e;
-        legacyAccount = msg.sender;
+        legacyOwner = msg.sender;
     }
 
-    struct legacyToken {
-        uint256 value;
-        address legacyAccount;
-        address prevlegacyAccount;
+    event getToken();
+    event sellToken(uint256 tokens); 
+    event toTransferToken(address toPerson, uint256 tokens); 
+
+
+    function getLegacyToken() public payable {
+        uint256 amt = 2 * msg.value / 10000000000000000;
+        erc20Contract.mint(msg.sender, amt);
+
+        emit getToken();
     }
 
-    uint256 public numTokens = 0;
-    mapping(uint256 => legacyToken) public tokens;
+    function sellLegacyToken(uint256 tokens) public payable {
+        require(tokens > 0, "You need to sell at least some tokens");
+        uint256 userBalance = erc20Contract.balanceOf(msg.sender);
+        require(userBalance >= tokens, "Your token balance is lower than the amount you want to sell");
+        uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
+        msg.sender.transfer(toPay);
+        emit sellToken(tokens);
+    }
 
-    event transferLT(uint256 tokenId, address newlegacyAccount);
+    function transferToken(address toPerson, uint256 tokens) public returns (bool) {
+        require(tokens > 0, "You need to sell at least some tokens");
+        erc20Contract.transfer(toPerson,tokens);
+        emit toTransferToken(toPerson, tokens);
+    }
 
-    //modifier to ensure a function is callable only by its legacyAccount
-    modifier legacyAccountOnly(uint256 tokenId) {
-        require(tokens[tokenId].legacyAccount == msg.sender);
+
+    function checkLTCredit() notOwner public view returns (uint256) {
+        return erc20Contract.balanceOf(msg.sender);
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return erc20Contract.totalSupply();
+    }
+
+    function checkOwnerLTCredit() onlyOwner public view returns (uint256) {
+        return erc20Contract.balanceOf(address(this));
+    }
+
+    function checkOwnerWei() onlyOwner public view returns (uint256) {
+        return erc20Contract.getEther() ;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == legacyOwner);
         _;
     }
 
-    modifier validTokenId(uint256 tokenId) {
-        require(tokenId < numTokens);
+    modifier notOwner() {
+        require(msg.sender != legacyOwner);
         _;
     }
 
-    function transfer(uint256 tokenId, address newlegacyAccount) public validTokenId(toknId) {
-        tokens[tokenId].prevlegacyAccount = tokens[tokenId].legacyAccount;
-        tokens[tokenId].legacyAccount = newlegacyAccount;
-
-        emit transferLT(tokenId, newlegacyAccount);
-    }
-
-    function checkCredit() public returns(uint256) {
-        uint256 credit = erc20Contract.balanceOf(msg.sender);
-        emit creditChecked(credit);
-        return credit;
-    }
-
-    function transferCredit(address recipient, uint256 amt) public {
-        erc20Contract.transfer(recipient, amt);
-    }
-
-    function transferCreditFrom(address from, address to, uint256 amt) public {
-        erc20Contract.transferFrom(from, to, amt);
-    }
-
-    function giveAllowance(address recipient, uint256 amt) public {
-        erc20Contract.approve(recipient, amt);
-    }
-
-    // Buy the legacy token at the requested price
-    function buy(uint256 id, uint256 price) public {
-       require(price >= (_price + comissionFee));
-       transferCreditFrom(msg.sender, _legacyAccount, comissionFee);
-       transferCreditFrom(msg.sender, getPrevlegacyAccount(id), (price - comissionFee));
-       transfer(id, msg.sender);
-    }
-
-    // getters
-    function getValue(uint256 tokenId) public view validTokenId(tokenId) returns (address) {
-        return tokens[tokenId].value;
-    }
-
-    function getlegacyAccount(uint256 tokenId) public view validTokenId(tokenId) returns (address) {
-        return tokens[tokenId].legacyAccount;
-    }
-
-    function getPrevlegacyAccount(uint256 tokenId) public view validTokenId(tokenId) returns (address) {
-        return tokens[tokenId].prevlegacyAccount;
-    }
 }

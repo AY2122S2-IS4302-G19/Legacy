@@ -26,7 +26,7 @@ contract('Legacy', function (accounts) {
             366,                        // inactiveDays
             [accounts[4]],              // beneficieries
             [100],                      // assets to xfer to benefiecieries
-            { from: accounts[1], value: 10**18 }  // willWriter & ether to transfer to platform
+            { from: accounts[1], value: 10 }  // willWriter & ether to transfer to platform
         );
 
         // Inactivity Trigger
@@ -40,12 +40,18 @@ contract('Legacy', function (accounts) {
             false,                          // convertLT
             0,                              // inactiveDays
             [accounts[8]],                  // beneficieries
-            [10],                           // assets to xfer to benefiecieries
-            { from: accounts[2], value:10**18 }           // willWriter
+            [100],                           // assets to xfer to benefiecieries
+            { from: accounts[2], value:10 }           // willWriter
         );
 
         truffleAssert.eventEmitted(will1, 'addingWill');
         truffleAssert.eventEmitted(will2, 'addingWill');
+    })
+
+
+    it("check balances", async () =>{
+        let bal = await legacyInstance.getBalances();
+        assert(bal == 20)
     })
 
     it('2. Submit Account 1 Death Certificate', async () => {
@@ -74,7 +80,7 @@ contract('Legacy', function (accounts) {
             {from: accounts[1], value: 0 }
         ),truffleAssert.ErrorType.REVERT,"No ether received when legacy platform as custodian is chosen")
 
-        // Inactivity less than 365 days
+        // // Inactivity less than 365 days
         await truffleAssert.fails(legacyInstance.createWill(
             [accounts[2], accounts[3]],
             accounts[2],
@@ -86,10 +92,10 @@ contract('Legacy', function (accounts) {
             1,
             [accounts[4]],
             [100],
-            {from: accounts[1], value: 10 }
+            {from: accounts[6], value: 10 }
         ),truffleAssert.ErrorType.REVERT,"Please set inactivity days to be at least 365 days")
         
-        // Beneficiaries and weight information inconsistent
+        // // Beneficiaries and weight information inconsistent
         await truffleAssert.fails(legacyInstance.createWill(
             [accounts[2], accounts[3]],
             accounts[2],
@@ -101,29 +107,27 @@ contract('Legacy', function (accounts) {
             366,
             [accounts[4]],
             [100,10],
-            {from: accounts[1], value: 10 }
+            {from: accounts[6], value: 10 }
         ),truffleAssert.ErrorType.REVERT,"Please check beneficiaries and weights information")
         
     })
 
-    it("check balances", async () =>{
-        let bal = await legacyInstance.getBalances();
-        assert(bal == 10**18)
-    })
 
     it("Updating Will", async () => {
-        let will1 = await legacyInstance.createWill(
-            [accounts[2], accounts[3]],
-            accounts[2],
-            1,
-            false,
-            false,
-            false,
-            false,
-            366,
-            [accounts[4]],
-            [100],
-            { from: accounts[1], value: 10**18 }
+        await truffleAssert.fails(
+            legacyInstance.createWill(
+                    [accounts[2], accounts[3]],
+                    accounts[2],
+                    1,
+                    false,
+                    false,
+                    false,
+                    false,
+                    366,
+                    [accounts[4]],
+                    [100],
+                    { from: accounts[1], value: 10**18 }),truffleAssert.ErrorType.REVERT,
+                    'Already has a will with Legacy, use update will function instead'
         );
 
         let updateWill1 = await legacyInstance.updateWill(

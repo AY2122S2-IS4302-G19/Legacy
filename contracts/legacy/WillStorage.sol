@@ -39,6 +39,7 @@ contract WillStorage {
         bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user
         bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
         uint256 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
+        address[] beneficiariesAddress;
         mapping(address => uint256) beneficiaries;
     }
 
@@ -64,8 +65,7 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory weights,
-        uint256 totalAmount
+        uint256[] memory weights
     ) public payable returns (uint256) {
         require(
             users[willWriter].id == 0,
@@ -85,7 +85,7 @@ contract WillStorage {
                 beneficiariesAddress.length == weights.length,
             "Please check beneficiaries and weights information"
         );
-        require(equals100pct(weights));
+        require(equals100pct(weights),"Weights must add up to 100%");
 
         Will storage userWill = users[willWriter];
         userWill.balances = balances;
@@ -230,16 +230,16 @@ contract WillStorage {
         }
     }
 
-    function removeBeneficiares(
-        address willWriter,
-        address[] memory beneficiariesAddress
-    ) private {
-        Will storage userWill = users[willWriter];
-        for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
-            userWill.totalAmount -= userWill.beneficiaries[beneficiariesAddress[i]];
-            userWill.beneficiaries[beneficiariesAddress[i]] = 0;
-        }
-    }
+    // function removeBeneficiares(
+    //     address willWriter,
+    //     address[] memory beneficiariesAddress
+    // ) private {
+    //     Will storage userWill = users[willWriter];
+    //     for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
+    //         userWill.totalAmount -= userWill.beneficiaries[beneficiariesAddress[i]];
+    //         userWill.beneficiaries[beneficiariesAddress[i]] = 0;
+    //     }
+    // }
 
     function updateBeneficiares(address willWriter, address[] memory beneficiariesAddress,uint256[] memory weights) authorize(willWriter, tx.origin) public {
         require(hasWill(willWriter), "No existing will");

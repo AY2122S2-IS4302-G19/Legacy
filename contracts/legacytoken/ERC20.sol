@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0 <0.9.0;
 //first need to approve the address of spender 
 // Check the allowance
 //Finally able to call transferFrom to transfer tokens
@@ -62,7 +62,7 @@ contract ERC20 {
     
     string public constant name = "LegacyToken";
     string public constant symbol = "LT";
-    uint8 public constant decimals = 18;
+    uint8 public constant decimals = 16;
     uint256 totalSupply_;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -168,10 +168,10 @@ contract ERC20 {
 
   function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (uint256) {
     balances[_from] = balances[_from].sub(_amount);
-    uint256 etherFee = _amount.mul(1000000000000000000).div(2);
+    uint256 etherFee = _amount.mul(10000000000000000).div(2);
     uint256 transferFee =  etherFee.mul(5);
     transferFee = transferFee.div(1000);
-    uint256 tokenFee = transferFee.div(1000000000000000000).mul(2);
+    uint256 tokenFee = transferFee.div(10000000000000000).mul(2);
     uint256 remainingLT = _amount.sub(tokenFee);
 
     balances[owner] = balances[owner].add(tokenFee);
@@ -183,7 +183,7 @@ contract ERC20 {
     emit Transfer(_from, address(0), remainingLT);
 
     if(remainingLT >0) {
-      return remainingLT/2* 1000000000000000000;
+      return remainingLT.div(2).mul(10000000000000000);
     } else {
       return 0;
     }

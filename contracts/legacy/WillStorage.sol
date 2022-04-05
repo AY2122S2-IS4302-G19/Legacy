@@ -11,13 +11,14 @@ import "../legacytoken/LegacyToken.sol";
 
 contract WillStorage {
     LegacyToken legacyToken;
+    uint256 numWill;
+    mapping(uint256 => address) usersAdd; // works just like an array but is cheaper to use mapping
+    mapping(address => Will) users;
 
     constructor(LegacyToken lt) public {
         legacyToken = lt;
+        numWill = 1;
     }
-
-    uint256 numWill;
-    mapping(address => Will) users;
 
     /* ACCESS LEVEL
     0: Trustees/Custodian has no access to any features.
@@ -30,15 +31,14 @@ contract WillStorage {
         uint256 balances;
         address willWriter;
         address custodian;
-        uint8 custodianAccess;
+        uint256 custodianAccess;
         address[] trustees;
         bool initalised;
         bool trusteeTrigger; // true = trustee, false = inactivity
         bool ownWallet; // whether the user wants to store $$ in their own wallet or into legacy platform
         bool ownLegacyToken; // whether the user wants to convert to legacy token at the point of adding user
         bool convertLegacyPOW; // whether the user wants to covert to legacy token at the point of executing the will
-        uint16 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
-        address[] beneficiariesAddress;
+        uint256 inactivityDays; // how many days does the wallet needs to be without activity before triggering the will.
         mapping(address => uint256) beneficiaries;
     }
 
@@ -48,8 +48,8 @@ contract WillStorage {
 
 
 
-    function isTrusteeTrigger(address willWriter) public view returns (bool) {
-        return users[willWriter].trusteeTrigger;
+    function getNumWill() public view returns (uint256) {
+        return numWill;
     }
 
     function addWill(
@@ -57,14 +57,15 @@ contract WillStorage {
         uint256 balances,
         address[] memory trustees,
         address custodian,
-        uint8 custodianAccess,
+        uint256 custodianAccess,
         bool trusteeTrigger,
         bool ownWallet,
         bool ownLegacyToken,
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory weights
+        uint256[] memory weights,
+        uint256 totalAmount
     ) public payable returns (uint256) {
         require(
             users[willWriter].id == 0,
@@ -101,6 +102,7 @@ contract WillStorage {
         userWill.inactivityDays = inactivityDays;
         userWill.beneficiariesAddress = beneficiariesAddress;
         addBeneficiares(willWriter, beneficiariesAddress, weights);
+        usersAdd[numWill] = willWriter;
 
         if (userWill.ownWallet) {
             // Seek approval to transfer his asset
@@ -144,6 +146,14 @@ contract WillStorage {
         require(hasWill(willWriter));
         require(tx.origin == users[willWriter].willWriter, "Only owner can remove a will");
         delete users[willWriter];
+    }
+    
+    function getAddressById(uint256 id) public view returns (address) {
+        return usersAdd[id];
+    }
+
+    function isTrusteeTrigger(address willWriter) public view returns (bool) {
+        return users[willWriter].trusteeTrigger;
     }
 
     function addTrustee(
@@ -226,6 +236,7 @@ contract WillStorage {
     ) private {
         Will storage userWill = users[willWriter];
         for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
+            userWill.totalAmount -= userWill.beneficiaries[beneficiariesAddress[i]];
             userWill.beneficiaries[beneficiariesAddress[i]] = 0;
         }
     }
@@ -313,4 +324,7 @@ contract WillStorage {
 
 
 
+    function getInactivityDays(address add) public view returns (uint256) {
+        return users[add].inactivityDays;
+    }
 }

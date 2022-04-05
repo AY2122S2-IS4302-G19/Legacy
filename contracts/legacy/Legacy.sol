@@ -2,24 +2,40 @@
 pragma solidity >=0.5.0 <0.9.0;
 
 import "./WillStorage.sol";
+import "./apis/DeathOracle.sol";
+import "./apis/TransactionOracle.sol";
 
 contract Legacy {
     WillStorage willStorage;
     uint256 totalBalances;
+    DeathOracle deathOracle;
+    TransactionOracle transactionOracle;
 
-    constructor(WillStorage ws) public {
+    constructor(
+        WillStorage ws,
+        DeathOracle doracle,
+        TransactionOracle toracle
+    ) public {
         willStorage = ws;
+        deathOracle = doracle;
     }
 
     event addingWill();
     event updatingWill();
     event deletingWill();
     event updatingBeneficiaries();
+    event executingTrusteeWill(address willWriter);
+    event submittedDeathCert(address deceased);
+
+    modifier hasWill(address add) {
+        require(willStorage.hasWill(add), "Please create a Will first");
+        _;
+    }
 
     function createWill(
         address[] memory trustees,
         address custodian,
-        uint8 custodianAccess,
+        uint256 custodianAccess,
         bool trusteeTrigger,
         bool ownWallet,
         bool ownLegacyToken,
@@ -90,30 +106,42 @@ contract Legacy {
         emit deletingWill();
     }
 
-
-    function executeWill(address willWriter) private view {
-        require(willStorage.hasWill(willWriter), "User does not exist");
+    function executeWill(address willWriter) private view hasWill(willWriter) {
         if (willStorage.isTrusteeTrigger(willWriter)) {
-            executeTrusteeWill(willWriter);
-        } else {
-            executeInactivityWill(willWriter);
+            require(
+                willStorage.isAuthorized(willWriter, msg.sender),
+                "You are not authorized to execute the trustee will"
+            );
+            require(
+                deathOracle.isDead(willWriter),
+                "User does not have a verified death certificate"
+            );
         }
 
-        // something here if it messes up
+        // Perform the transferring of assets here
     }
 
-    function executeTrusteeWill(address willWriter) private view {
-        //view parameter to be deleted.
-        require(willStorage.hasWill(willWriter), "User does not exist");
-        require(willStorage.isAuthorized(willWriter, msg.sender));
-        //pass
+    function submitDeathCertificate(address willWriter, string memory url)
+        public
+        hasWill(willWriter)
+    {
+        deathOracle.submit(willWriter, url);
+        emit submittedDeathCert(willWriter);
     }
 
-    function executeInactivityWill(address willWriter) private view {
-        //view parameter to be deleted.
-        // TODO
-        // require to be executed only by smart contract
-        // require to inactivity days to be >= num of inactivity days set at point of deploying smart contract
-        // Need to transfer asset from user wallet to designated address
+    // just throw this method into the most used function and
+    // that's how inactivity wills will get triggered
+    function triggerInactivityWills() private view {
+        for (uint256 i = 1; i <= willStorage.getNumWill(); i++) {
+            address add = willStorage.getAddressById(i);
+            if (!willStorage.isTrusteeTrigger(add)) {
+                if (
+                    block.timestamp - willStorage.getInactivityDays(add) >
+                    transactionOracle.getLatestTransactionTimestamp(add)
+                ) {
+                    executeWill(add);
+                }
+            }
+        }
     }
 }

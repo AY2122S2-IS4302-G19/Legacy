@@ -4,7 +4,8 @@ import "./ERC20.sol";
 
 //Requries legal authority - suppose legal authorithy have address of ___
 //Since we are encouraging people to use our Token, there is no limit as to how much they can have
-//2 LT = 0.01 ether, 1 ether = 200 LT
+// 100 tokens = 1 sgd = 0.00025 ether 
+// 1 token = 0.01 SGD = 0.0000025 ether = 2500000000000 wei
 // 2% of LT token as transferFee for transferring from token other currency > token is transfered to owner. 98% of token is converted to ether sent to msg.sender
 
 
@@ -25,7 +26,7 @@ contract LegacyToken {
         legacyOwner = payable(msg.sender);
     }
 
-    event getToken();
+    event getToken(uint256 numTokens);
     event userAdded(address newUser);
     event sellToken(uint256 tokens); 
     event toTransferToken(address toPerson, uint256 tokens); 
@@ -43,7 +44,7 @@ contract LegacyToken {
     }
 
     function getLegacyToken() public payable {
-        uint256 amt = 2 * msg.value / 10000000000000000;
+        uint256 amt = msg.value / 2500000000000;
        
         if (!isExistingUser(msg.sender)) {
             users[msg.sender] = 1;
@@ -55,7 +56,7 @@ contract LegacyToken {
         }
 
         erc20Contract.mint(msg.sender, amt);
-        emit getToken();
+        emit getToken(amt);
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
@@ -94,7 +95,7 @@ contract LegacyToken {
     }
 
 
-    function calculateInterest(uint256 principal, address sender) public view returns (uint256, uint256) {
+    function calculateInterest(uint256 principal, address sender) internal view returns (uint256, uint256) {
         uint256 numPeriods = (block.timestamp - interestStart[sender]) / interestPeriod;
         for (uint period = 0; period < numPeriods; period++)  
             principal += principal * interestRate / 10000;

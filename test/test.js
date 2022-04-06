@@ -12,12 +12,27 @@ contract('LegacyToken', function(accounts) {
 
     console.log("Testing Legacy Token Contract");
 
-    it('Cet LT Token', async() => {
-        let t1 = await legacyTokenInstance.getLegacyToken({from: accounts[1], value: 20000000000000000000});
-        truffleAssert.eventEmitted(t1, "getToken");
+    it('Get LT Token', async() => {
+        let t1 = await legacyTokenInstance.getLegacyToken({from: accounts[1], value: 250000000000000});
+        truffleAssert.eventEmitted(t1, "getToken", (ev) => {
+            return ev.numTokens == 100;
+        });
+        truffleAssert.eventEmitted(t1, "userAdded");
     })
 
-    // it('Set Interest Rate', async() => {
+    it('Set Interest Rate to 1% and interest compounding rate to 1 minutes', async() => {
+        let t1 = await legacyTokenInstance.setInterestRate(101, 60, {from: accounts[0]});
+        truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
+            return ev.rate == 101 && ev.period == 60;
+        })
+    })
 
-    // })
+    it('Returning user buys LT Token', async() => {
+        let t1 = await legacyTokenInstance.getLegacyToken({from: accounts[1], value: 250000000000000});
+        truffleAssert.eventEmitted(t1, "getToken");
+        truffleAssert.eventNotEmitted(t1, "userAdded");
+        truffleAssert.eventEmitted(t1, "depositedInterest", (ev) => {
+            return ev.newBalance == 100;
+        });
+    })
 });

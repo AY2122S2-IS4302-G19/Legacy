@@ -13,9 +13,11 @@ contract LegacyToken {
     address payable legacyOwner;
     uint256 getCreditFee = 1;
     
-    address[] users;
-    mapping(address => uint256) depositStart;
+    mapping(address => uint256) users;
+    mapping(address => uint256) interestStart;
     uint256 interestRate;
+    uint256 interestPeriod;
+
 
     constructor() public {
         ERC20 e = new ERC20();
@@ -28,37 +30,31 @@ contract LegacyToken {
     event sellToken(uint256 tokens); 
     event toTransferToken(address toPerson, uint256 tokens); 
 
-    event interestRateSet(uint256 rate);
+    event interestRateSet(uint256 rate, uint256 period);
+    event depositedInterest(uint256 newBalance, uint256 interestStart);
     event debug(uint256 bug);
 
 
     function isExistingUser(address sender) public view returns (bool) {
-
-        bool existingUser = false;
-
-        //add to users list
-        for (uint i = 0; i < users.length; i++) {
-            if (sender == users[i]) {
-                existingUser = true;
-            }
+        if (users[sender] == 0) {
+            return false;
         }
-        
-
-        return existingUser;
+        return true;
     }
 
     function getLegacyToken() public payable {
         uint256 amt = 2 * msg.value / 10000000000000000;
-        erc20Contract.mint(msg.sender, amt);
-        
-        bool existingUser = isExistingUser(msg.sender);
-
-        if (!existingUser) {
-            users.push(msg.sender);
-            depositStart[msg.sender] = block.timestamp;
+       
+        if (!isExistingUser(msg.sender)) {
+            users[msg.sender] = 1;
+            interestStart[msg.sender] = block.timestamp;
             emit userAdded(msg.sender);
+        } else {
+            //lazy update of interest earned
+            depositInterest(msg.sender);
         }
 
+        erc20Contract.mint(msg.sender, amt);
         emit getToken();
     }
 
@@ -66,6 +62,7 @@ contract LegacyToken {
         require(tokens > 0, "You need to sell at least some tokens");
         uint256 userBalance = erc20Contract.balanceOf(msg.sender);
         require(userBalance >= tokens, "Your token balance is lower than the amount you want to sell");
+        depositInterest(msg.sender);
         uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
         payable(msg.sender).transfer(toPay);
         emit sellToken(tokens);
@@ -77,27 +74,38 @@ contract LegacyToken {
         emit toTransferToken(toPerson, tokens);
     }
 
-
     //interest rate = 1%, set: interestRate = 1
-    function setInterestRate(uint256 rate) onlyOwner public {
+    function setInterestRate(uint256 rate, uint256 period) onlyOwner public {
         require(rate >= 0, "Interest rate cannot be negative");
         interestRate = rate;
-        emit interestRateSet(rate);
+        interestPeriod = period;
+        emit interestRateSet(rate, period);
+    }
+
+    function depositInterest(address sender) internal {
+        uint256 balance = erc20Contract.balanceOf(msg.sender);
+        uint256 newBalance;
+        uint256 numPeriods;
+        (newBalance, numPeriods) = calculateInterest(balance, sender);
+        
+        erc20Contract.mint(sender, newBalance - balance);
+        interestStart[sender] = interestStart[sender] + numPeriods * interestPeriod;
+        emit depositedInterest(newBalance, interestStart[sender]);
+    }
+
+
+    function calculateInterest(uint256 principal, address sender) public view returns (uint256, uint256) {
+        uint256 numPeriods = (block.timestamp - interestStart[sender]) / interestPeriod;
+        for (uint period = 0; period < numPeriods; period++)  
+            principal += principal * interestRate / 10000;
+        return (principal, numPeriods);
     }
 
     function checkLTCredit() public view returns (uint256) {     
-        return erc20Contract.balanceOf(msg.sender);
-    }
-
-    function calculateNumInterestPeriods(address sender) public view returns (uint256) {
-        return (block.timestamp - depositStart[sender]) / 365 days;
-    }
-
-    function calculateInterest( uint256 principal) public view returns (uint256) {
-        uint256 numPeriods = calculateNumInterestPeriods(msg.sender);
-        for (uint period = 0; period < numPeriods; period++)  
-            principal += principal * 101 / 10000;
-        return principal;
+        uint256 balance = erc20Contract.balanceOf(msg.sender);
+        uint256 newBalance;
+        (newBalance, ) = calculateInterest(balance, msg.sender);
+        return newBalance;
     }
 
     function totalSupply() public view returns (uint256) {

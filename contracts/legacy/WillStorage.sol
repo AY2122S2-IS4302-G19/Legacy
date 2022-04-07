@@ -107,14 +107,6 @@ contract WillStorage {
         userWill.beneficiariesAddress = beneficiariesAddress;
         addBeneficiares(willWriter, beneficiariesAddress, weights);
         usersAdd[numWill] = willWriter;
-
-        if (userWill.ownWallet) {
-            // Seek approval to transfer his asset
-        }
-        if (userWill.ownLegacyToken) {
-            // to convert $$ into Legacy token
-
-        }
         return numWill;
 
 

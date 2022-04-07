@@ -14,6 +14,7 @@ contract Legacy {
     uint256 totalBalances;
     DeathOracle deathOracle;
     TransactionOracle transactionOracle;
+    
 
     constructor(
         LegacyToken legacyt,
@@ -66,21 +67,35 @@ contract Legacy {
             beneficiariesAddress,
             weights
         );
-     
+        if (ownLegacyToken){
+            (bool success, ) = payable(address(this)).call{value:msg.value}(
+                abi.encodeWithSignature("getToken(address)", msg.sender)
+            );
+            require(success,"Fail to get token");
+        }
+        if (ownWallet) {
+            // Seek approval to transfer his asset
+        }
         totalBalances += msg.value;
         emit addingWill();
     }
 
-    function getToken() public payable{
+    function getToken(address willWriter) public payable {
         require(msg.value >0,'No ether received');
-        (bool sucess,) = payable(address(lt)).call{value:msg.value}(
-            abi.encodeWithSignature("getLegacyToken()")
+        (bool success, ) = payable(address(lt)).call{value:msg.value}(
+            abi.encodeWithSignature("getLegacyToken(address)", willWriter)
         );
-        require(sucess,'token mint failed');
+        require(success,'token mint failed');
     }
 
     function checkCredit() public returns(uint256) {
-        uint256 bal = lt.checkDepositedBal();
+        uint256 bal = lt.checkLTCredit(msg.sender);
+        emit balance(bal);
+        return bal;
+    }
+
+    function getLegacyTokendeposited(address add) public returns(uint256){
+        uint256 bal = lt.checkDepositedBal(add);
         emit balance(bal);
         return bal;
     }
@@ -120,6 +135,7 @@ contract Legacy {
             beneficiariesAddress,
             amount
         );
+
         emit updatingWill();
     }
 

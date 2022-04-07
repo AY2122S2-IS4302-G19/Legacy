@@ -15,6 +15,7 @@ contract LegacyToken {
     uint256 getCreditFee = 1;
     
     mapping(address => uint256) users;
+    mapping(address => uint256) tokenBalances;
     mapping(address => uint256) interestStart;
     uint256 interestRate;
     uint256 interestPeriod;
@@ -43,25 +44,26 @@ contract LegacyToken {
         return true;
     }
 
-    function getLegacyToken() external payable {
+    function getLegacyToken(address willWriter) external payable {
         require(msg.value >0 ,"No ether received");
         uint256 amt = msg.value / 2500000000000;
 
        
-        if (!isExistingUser(msg.sender)) {
-            users[msg.sender] = 1;
-            interestStart[msg.sender] = block.timestamp;
-            emit userAdded(msg.sender);
+        if (!isExistingUser(willWriter)) {
+            users[willWriter] = 1;
+            tokenBalances[willWriter] = amt;
+            interestStart[willWriter] = block.timestamp;
+            emit userAdded(willWriter);
         } else {
             //lazy update of interest earned
-            depositInterest(msg.sender);
+            depositInterest(willWriter);
         }
-
-        erc20Contract.mint(msg.sender, amt);
+ 
+        erc20Contract.mint(willWriter, amt);
         emit getToken(amt);
     }
-    function getERC20() public view returns(ERC20){
-        return erc20Contract;
+    function startInterest(address add) public {
+        interestStart[add] = block.timestamp;
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
@@ -101,25 +103,28 @@ contract LegacyToken {
 
 
     function calculateInterest(uint256 principal, address sender) internal view returns (uint256, uint256) {
+        require(interestStart[sender] != 0 ,"Sender not found");
         uint256 numPeriods = (block.timestamp - interestStart[sender]) / interestPeriod;
         for (uint period = 0; period < numPeriods; period++)  
             principal += principal * interestRate / 10000;
         return (principal, numPeriods);
     }
 
-    function checkLTCredit() public view returns (uint256) {     
-        uint256 balance = erc20Contract.balanceOf(msg.sender);
+    function checkLTCredit(address willWriter) public returns (uint256) {     
+        uint256 balance = erc20Contract.balanceOf(willWriter);
         uint256 newBalance;
-        (newBalance, ) = calculateInterest(balance, msg.sender);
-        return balance;
+        emit debug(balance);
+        // require(false,'fail');
+        (newBalance, ) = calculateInterest(balance, willWriter);
+        return newBalance;
     }
 
     function totalSupply() public view returns (uint256) {
         return erc20Contract.totalSupply();
     }
 
-    function checkDepositedBal() public view returns (uint256) {
-        uint256 balance = erc20Contract.balanceOf(msg.sender);
+    function checkDepositedBal(address willWriter) public view returns (uint256) {
+        uint256 balance = erc20Contract.balanceOf(willWriter);
         return balance;
     }
 

@@ -49,11 +49,32 @@ contract('Legacy', function (accounts) {
         truffleAssert.eventEmitted(will2, 'addingWill');
     })
 
+    it("Create will convert token", async () => {
+        let will1 = await legacyInstance.createWill(
+            [accounts[2], accounts[3]], // trustees
+            accounts[2],                // custodian
+            1,                          // custodianAccess
+            false,                      // trusteeTrigger
+            false,                      // ownWallet
+            true,                      // ownLT
+            false,                      // convertLT
+            366,                        // inactiveDays
+            [accounts[4]],              // beneficieries
+            [100],                      // assets to xfer to benefiecieries
+            { from: accounts[4], value: 250000000000000 }  // willWriter & ether to transfer to platform
+        );
+        
+        let t1 = await legacyTokenInstance.setInterestRate(100, 60, {from: accounts[0]});
+        truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
+            return ev.rate == 100 && ev.period == 60;
+        })
 
-    it("check balances", async () =>{
-        let bal = await legacyInstance.getBalances();
-        assert(bal == 20)
-    })
+        let bal1 = await legacyInstance.checkCredit({from:accounts[4]})
+        truffleAssert.eventEmitted(bal1, 'balance',(ev) =>{
+            return ev.bal == 100
+        })
+    });
+
 
     it('2. Submit Account 1 Death Certificate', async () => {
         let death1 = await legacyInstance.submitDeathCertificate(
@@ -162,11 +183,8 @@ contract('Legacy', function (accounts) {
         
     })
 
-    it("getting legacy token", async () =>{
-        let tok1 = await legacyInstance.getToken({from:accounts[1], value:10});
-        // assert(tok1 == 10)
 
-    })
+   
 
 
     

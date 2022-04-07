@@ -10,13 +10,18 @@ pragma solidity >=0.5.0 <0.9.0;
 import "../legacytoken/LegacyToken.sol";
 
 contract WillStorage {
-    LegacyToken legacyToken;
-    uint256 numWill;
+    // LegacyToken legacyToken;
+    uint256 val;
+    uint256 numWill = 1;
     mapping(uint256 => address) usersAdd; // works just like an array but is cheaper to use mapping
     mapping(address => Will) users;
+    // mapping(address => uint256) legacyTokenBalances;
 
-    constructor(LegacyToken lt) public {
-        legacyToken = lt;
+    // constructor(LegacyToken lt) public {
+    //     legacyToken = lt;
+    //     numWill = 1;
+    // }
+    constructor() public {
         numWill = 1;
     }
 
@@ -44,7 +49,7 @@ contract WillStorage {
     }
 
     event updatingWill(address willWriter);
-
+    event debug(string);
 
 
 
@@ -52,7 +57,6 @@ contract WillStorage {
     function getNumWill() public view returns (uint256) {
         return numWill;
     }
-
     function addWill(
         address willWriter,
         uint256 balances,
@@ -86,7 +90,7 @@ contract WillStorage {
             "Please check beneficiaries and weights information"
         );
         require(equals100pct(weights),"Weights must add up to 100%");
-
+        emit debug("creating will now");
         Will storage userWill = users[willWriter];
         userWill.balances = balances;
         userWill.initalised = true;
@@ -112,6 +116,8 @@ contract WillStorage {
 
         }
         return numWill;
+
+
     }
 
     function updateWill(       

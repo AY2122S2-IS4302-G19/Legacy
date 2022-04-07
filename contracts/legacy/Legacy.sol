@@ -1,21 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.5.0 <0.9.0;
+pragma solidity >=0.7.0;
 
 import "./WillStorage.sol";
 import "./apis/DeathOracle.sol";
 import "./apis/TransactionOracle.sol";
+import "../legacytoken/LegacyToken.sol";
+
+import "../legacytoken/ERC20.sol";
 
 contract Legacy {
     WillStorage willStorage;
+    LegacyToken lt;
     uint256 totalBalances;
     DeathOracle deathOracle;
     TransactionOracle transactionOracle;
 
     constructor(
+        LegacyToken legacyt,
         WillStorage ws,
         DeathOracle doracle,
         TransactionOracle toracle
     ) public {
+        lt = legacyt;
         willStorage = ws;
         deathOracle = doracle;
     }
@@ -26,6 +32,7 @@ contract Legacy {
     event updatingBeneficiaries();
     event executingTrusteeWill(address willWriter);
     event submittedDeathCert(address deceased);
+    event balance(uint256 bal);
 
     modifier hasWill(address add) {
         require(willStorage.hasWill(add), "Please create a Will first");
@@ -59,8 +66,23 @@ contract Legacy {
             beneficiariesAddress,
             weights
         );
+     
         totalBalances += msg.value;
         emit addingWill();
+    }
+
+    function getToken() public payable{
+        require(msg.value >0,'No ether received');
+        (bool sucess,) = payable(address(lt)).call{value:msg.value}(
+            abi.encodeWithSignature("getLegacyToken()")
+        );
+        require(sucess,'token mint failed');
+    }
+
+    function checkCredit() public returns(uint256) {
+        uint256 bal = lt.checkDepositedBal();
+        emit balance(bal);
+        return bal;
     }
     
     function getBalances() public view returns(uint256){

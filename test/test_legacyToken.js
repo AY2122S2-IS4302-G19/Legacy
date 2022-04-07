@@ -7,6 +7,7 @@ var LegacyToken = artifacts.require("../contracts/legacyToken/LegacyToken.sol");
 
 contract('LegacyToken', function(accounts) {
     before(async () => {
+        legacyInstance = await Legacy.deployed();
         legacyTokenInstance = await LegacyToken.deployed();
     });
 
@@ -35,4 +36,15 @@ contract('LegacyToken', function(accounts) {
             return ev.newBalance == 100;
         });
     })
+
+    it("buying legacy token with contract", async () =>{
+
+        let tok1 = await legacyInstance.getToken({from:accounts[1], value:250000000000000});
+        let credit = await legacyInstance.checkCredit({from:accounts[1]});
+        truffleAssert.eventEmitted(credit, "balance", (ev) => {
+            return ev.bal == 100
+        });
+    })
+
+
 });

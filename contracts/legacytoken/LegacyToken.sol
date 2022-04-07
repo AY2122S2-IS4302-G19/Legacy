@@ -43,8 +43,10 @@ contract LegacyToken {
         return true;
     }
 
-    function getLegacyToken() public payable {
+    function getLegacyToken() external payable {
+        require(msg.value >0 ,"No ether received");
         uint256 amt = msg.value / 2500000000000;
+
        
         if (!isExistingUser(msg.sender)) {
             users[msg.sender] = 1;
@@ -57,6 +59,9 @@ contract LegacyToken {
 
         erc20Contract.mint(msg.sender, amt);
         emit getToken(amt);
+    }
+    function getERC20() public view returns(ERC20){
+        return erc20Contract;
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
@@ -106,16 +111,17 @@ contract LegacyToken {
         uint256 balance = erc20Contract.balanceOf(msg.sender);
         uint256 newBalance;
         (newBalance, ) = calculateInterest(balance, msg.sender);
-        return newBalance;
+        return balance;
     }
 
     function totalSupply() public view returns (uint256) {
         return erc20Contract.totalSupply();
     }
 
-    // function checkOwnerLTCredit() onlyOwner public view returns (uint256) {
-    //     return erc20Contract.balanceOf(address(this));
-    // }
+    function checkDepositedBal() public view returns (uint256) {
+        uint256 balance = erc20Contract.balanceOf(msg.sender);
+        return balance;
+    }
 
     function checkOwnerWei() onlyOwner public view returns (uint256) {
         return erc20Contract.getEther() ;

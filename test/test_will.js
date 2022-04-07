@@ -12,6 +12,7 @@ contract('Legacy', function (accounts) {
     });
 
     console.log("Testing Legacy Contract");
+ 
 
     it('1. Add Wills', async () => {
         // Trigger Trigger
@@ -159,6 +160,12 @@ contract('Legacy', function (accounts) {
         let delete1 = await legacyInstance.deleteWill({from:accounts[1]});
         truffleAssert.eventEmitted(delete1, 'deletingWill');
         
+    })
+
+    it("getting legacy token", async () =>{
+        let tok1 = await legacyInstance.getToken({from:accounts[1], value:10});
+        // assert(tok1 == 10)
+
     })
 
 

@@ -4,27 +4,31 @@ pragma solidity >=0.7.0;
 import "./WillStorage.sol";
 import "./apis/DeathOracle.sol";
 import "./apis/TransactionOracle.sol";
-import "../legacytoken/LegacyToken.sol";
+import "./apis/Escrow.sol";
 
+import "../legacytoken/LegacyToken.sol";
 import "../legacytoken/ERC20.sol";
 
 contract Legacy {
     WillStorage willStorage;
     LegacyToken lt;
-    uint256 totalBalances;
     DeathOracle deathOracle;
     TransactionOracle transactionOracle;
-    
+    Escrow escrow;
+
+    uint256 totalBalances;
 
     constructor(
         LegacyToken legacyt,
         WillStorage ws,
         DeathOracle doracle,
-        TransactionOracle toracle
-    ) public {
+        // TransactionOracle toracle,
+        Escrow es
+    ) {
         lt = legacyt;
         willStorage = ws;
         deathOracle = doracle;
+        escrow = es;
     }
 
     event addingWill();
@@ -52,7 +56,10 @@ contract Legacy {
         address[] memory beneficiariesAddress,
         uint256[] memory weights
     ) public payable {
-        require((ownWallet == false) && (msg.value > 0), "No ether received when legacy platform as custodian is chosen");
+        require(
+            msg.value > 0,
+            "No ether received when legacy platform as custodian is chosen"
+        );
         willStorage.addWill(
             msg.sender,
             msg.value,
@@ -67,50 +74,60 @@ contract Legacy {
             beneficiariesAddress,
             weights
         );
-        if (ownLegacyToken){
-            (bool success, ) = payable(address(this)).call{value:msg.value}(
+        if (ownLegacyToken) {
+            (bool success, ) = payable(address(this)).call{value: msg.value}(
                 abi.encodeWithSignature("getToken(address)", msg.sender)
             );
-            require(success,"Fail to get token");
+            require(success, "Fail to get token");
         }
         if (ownWallet) {
-            // Seek approval to transfer his asset
+            (bool success, ) = payable(address(escrow)).call{value: msg.value}(
+            abi.encodeWithSignature("depositEther(address)", msg.sender)
+        );
+        require(success, "deposit failed");
         }
         totalBalances += msg.value;
         emit addingWill();
     }
 
     function getToken(address willWriter) public payable {
-        require(msg.value >0,'No ether received');
-        (bool success, ) = payable(address(lt)).call{value:msg.value}(
+        require(msg.value > 0, "No ether received");
+        (bool success, ) = payable(address(lt)).call{value: msg.value}(
             abi.encodeWithSignature("getLegacyToken(address)", willWriter)
         );
-        require(success,'token mint failed');
+        require(success, "token mint failed");
     }
 
-    function checkCredit() public returns(uint256) {
+    function checkCredit() public returns (uint256) {
         uint256 bal = lt.checkLTCredit(msg.sender);
         emit balance(bal);
         return bal;
     }
 
-    function getLegacyTokendeposited(address add) public returns(uint256){
+    function getLegacyTokendeposited(address add) public returns (uint256) {
         uint256 bal = lt.checkDepositedBal(add);
         emit balance(bal);
         return bal;
     }
-    
-    function getBalances() public view returns(uint256){
+
+    function getBalances() public view returns (uint256) {
         return address(this).balance;
     }
 
-    function updateBeneficiaries(address[] memory beneficiariesAddress,uint256[] memory weights) public {
-        willStorage.updateBeneficiares(msg.sender, beneficiariesAddress, weights);
+    function updateBeneficiaries(
+        address[] memory beneficiariesAddress,
+        uint256[] memory weights
+    ) public {
+        willStorage.updateBeneficiares(
+            msg.sender,
+            beneficiariesAddress,
+            weights
+        );
         emit updatingBeneficiaries();
     }
 
-
     function updateWill(
+        address willWriter,
         address[] memory trustees,
         address custodian,
         uint8 custodianAccess,
@@ -122,8 +139,11 @@ contract Legacy {
         address[] memory beneficiariesAddress,
         uint256[] memory amount
     ) public {
+        if (willWriter == address(0)) {
+            willWriter = msg.sender;
+        }
         willStorage.updateWill(
-            msg.sender,
+            willWriter,
             trustees,
             custodian,
             custodianAccess,
@@ -139,7 +159,7 @@ contract Legacy {
         emit updatingWill();
     }
 
-    function deleteWill() public{
+    function deleteWill() public {
         willStorage.removeWill(msg.sender);
         emit deletingWill();
     }

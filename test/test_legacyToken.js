@@ -13,7 +13,7 @@ contract('LegacyToken', function(accounts) {
 
     console.log("Testing Legacy Token Contract");
 
-    it('Get LT Token', async() => {
+    it('1a. Buy LT Token', async() => {
         let t1 = await legacyTokenInstance.getLegacyToken(accounts[1], {from: accounts[1], value: 250000000000000});
         truffleAssert.eventEmitted(t1, "getToken", (ev) => {
             return ev.numTokens == 100;
@@ -21,14 +21,14 @@ contract('LegacyToken', function(accounts) {
         truffleAssert.eventEmitted(t1, "userAdded");
     })
 
-    it('Set Interest Rate to 1% and interest compounding rate to 1 minutes', async() => {
+    it('1b. Set Interest Rate to 1% and interest compounding rate to 1 minutes', async() => {
         let t1 = await legacyTokenInstance.setInterestRate(101, 60, {from: accounts[0]});
         truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
             return ev.rate == 101 && ev.period == 60;
         })
     })
 
-    it('Returning user buys LT Token', async() => {
+    it('1c. Returning user buys LT Token', async() => {
         let t1 = await legacyTokenInstance.getLegacyToken(accounts[1],{from: accounts[1], value: 250000000000000});
         truffleAssert.eventEmitted(t1, "getToken");
         truffleAssert.eventNotEmitted(t1, "userAdded");
@@ -37,7 +37,7 @@ contract('LegacyToken', function(accounts) {
         });
     })
 
-    it("buying legacy token with contract", async () =>{
+    it("1d. Buying Legacy token through Legacy", async () =>{
 
         let tok1 = await legacyInstance.getToken(accounts[2],{from:accounts[2], value:250000000000000});
         let credit = await legacyInstance.checkCredit({from:accounts[2]});
@@ -45,6 +45,5 @@ contract('LegacyToken', function(accounts) {
             return ev.bal == 100
         });
     })
-
 
 });

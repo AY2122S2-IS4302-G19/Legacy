@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
 import "./ERC20.sol";
@@ -21,7 +22,7 @@ contract LegacyToken {
     uint256 interestPeriod;
 
 
-    constructor() public {
+    constructor() {
         ERC20 e = new ERC20();
         erc20Contract = e;
         legacyOwner = payable(msg.sender);
@@ -68,17 +69,23 @@ contract LegacyToken {
 
     function sellLegacyToken(uint256 tokens) public payable {
         require(tokens > 0, "You need to sell at least some tokens");
-        uint256 userBalance = erc20Contract.balanceOf(msg.sender);
+        uint256 userBalance = erc20Contract.balanceOf(tx.origin);
         require(userBalance >= tokens, "Your token balance is lower than the amount you want to sell");
-        depositInterest(msg.sender);
-        uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
-        payable(msg.sender).transfer(toPay);
+        depositInterest(tx.origin);
+        uint256 toPay = erc20Contract.unmint(tx.origin, tokens);
+        payable(tx.origin).transfer(toPay);
         emit sellToken(tokens);
     }
 
     function transferToken(address toPerson, uint256 tokens) public {
-        require(tokens > 0, "You need to sell at least some tokens");
-        erc20Contract.transfer(toPerson,tokens);
+        require(tokens > 0, "You need to transfer at least some tokens");
+        erc20Contract.transfer(toPerson, tokens);
+        emit toTransferToken(toPerson, tokens);
+    }
+
+    function transferToken(address fromPerson, address toPerson, uint256 tokens) public {
+        require(tokens > 0, "You need to transfer at least some tokens");
+        erc20Contract.transferFrom(fromPerson, toPerson, tokens);
         emit toTransferToken(toPerson, tokens);
     }
 

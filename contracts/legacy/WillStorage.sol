@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.9.0;
 
-
-// - Get/Update/Remove Will (Darren)
-// - Beneficiaries' Weights (Darren)
-// - Handle transferring assets from wallet to Legacy platform ("Custodian  Will") (Darren)
-
-
 import "../legacytoken/LegacyToken.sol";
 
 contract WillStorage {
@@ -15,13 +9,14 @@ contract WillStorage {
     uint256 numWill = 1;
     mapping(uint256 => address) usersAdd; // works just like an array but is cheaper to use mapping
     mapping(address => Will) users;
+
     // mapping(address => uint256) legacyTokenBalances;
 
     // constructor(LegacyToken lt) public {
     //     legacyToken = lt;
     //     numWill = 1;
     // }
-    constructor() public {
+    constructor() {
         numWill = 1;
     }
 
@@ -51,12 +46,10 @@ contract WillStorage {
     event updatingWill(address willWriter);
     event debug(string);
 
-
-
-
     function getNumWill() public view returns (uint256) {
         return numWill;
     }
+
     function addWill(
         address willWriter,
         uint256 balances,
@@ -89,7 +82,7 @@ contract WillStorage {
                 beneficiariesAddress.length == weights.length,
             "Please check beneficiaries and weights information"
         );
-        require(equals100pct(weights),"Weights must add up to 100%");
+        require(equals100pct(weights), "Weights must add up to 100%");
         emit debug("creating will now");
         Will storage userWill = users[willWriter];
         userWill.balances = balances;
@@ -108,11 +101,9 @@ contract WillStorage {
         addBeneficiares(willWriter, beneficiariesAddress, weights);
         usersAdd[numWill] = willWriter;
         return numWill;
-
-
     }
 
-    function updateWill(       
+    function updateWill(
         address willWriter,
         address[] memory trustees,
         address custodian,
@@ -123,9 +114,10 @@ contract WillStorage {
         bool convertLegacyPOW,
         uint16 inactivityDays,
         address[] memory beneficiariesAddress,
-        uint256[] memory weights) public {
+        uint256[] memory weights
+    ) public authorize(willWriter, tx.origin) {
         require(hasWill(willWriter), "No existing will");
-        require(equals100pct(weights),'Weights not equal to 100');
+        require(equals100pct(weights), "Weights not equal to 100");
         Will storage userWill = users[willWriter];
         userWill.custodian = custodian;
         userWill.custodianAccess = custodianAccess;
@@ -136,16 +128,17 @@ contract WillStorage {
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = inactivityDays;
         updateBeneficiares(willWriter, beneficiariesAddress, weights);
-
-
     }
 
     function removeWill(address willWriter) public {
         require(hasWill(willWriter));
-        require(tx.origin == users[willWriter].willWriter, "Only owner can remove a will");
+        require(
+            tx.origin == users[willWriter].willWriter,
+            "Only owner can remove a will"
+        );
         delete users[willWriter];
     }
-    
+
     function getAddressById(uint256 id) public view returns (address) {
         return usersAdd[id];
     }
@@ -239,14 +232,20 @@ contract WillStorage {
     //     }
     // }
 
-    function updateBeneficiares(address willWriter, address[] memory beneficiariesAddress,uint256[] memory weights) authorize(willWriter, tx.origin) public {
+    function updateBeneficiares(
+        address willWriter,
+        address[] memory beneficiariesAddress,
+        uint256[] memory weights
+    ) public authorize(willWriter, tx.origin) {
         require(hasWill(willWriter), "No existing will");
         Will storage will = users[willWriter];
-        address[] storage currentBeneficiariesAddress = will.beneficiariesAddress;
-        mapping(address => uint256) storage currentBeneficiariesMapping = will.beneficiaries;
+        address[] storage currentBeneficiariesAddress = will
+            .beneficiariesAddress;
+        mapping(address => uint256) storage currentBeneficiariesMapping = will
+            .beneficiaries;
 
         // Removing the existing beneficiaries
-        for (uint256 i = 0; i < currentBeneficiariesAddress.length; i++){
+        for (uint256 i = 0; i < currentBeneficiariesAddress.length; i++) {
             address add = currentBeneficiariesAddress[i];
             delete currentBeneficiariesMapping[add];
         }
@@ -254,12 +253,11 @@ contract WillStorage {
         //Replacing with new beneficiaries
         will.beneficiariesAddress = beneficiariesAddress;
 
-        for (uint256 i = 0; i < beneficiariesAddress.length; i ++){
+        for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
             address add = beneficiariesAddress[i];
             uint256 weight = weights[i];
             will.beneficiaries[add] = weight;
         }
-
     }
 
     // Modifiers and authorization
@@ -305,22 +303,24 @@ contract WillStorage {
         return false;
     }
 
-    function equals100pct(uint256[] memory weights) public pure returns(bool){
+    function equals100pct(uint256[] memory weights) public pure returns (bool) {
         uint256 total = 0;
-        for(uint8 i = 0; i < weights.length; i++){
+        for (uint8 i = 0; i < weights.length; i++) {
             total += weights[i];
         }
         return total == 100;
     }
 
     // Getter functions
-    function getBenficiariesAddress(address willWriter) public view authorize(willWriter, tx.origin) returns(address[] memory){
+    function getBenficiariesAddress(address willWriter)
+        public
+        view
+        authorize(willWriter, tx.origin)
+        returns (address[] memory)
+    {
         require(hasWill(willWriter));
         return users[willWriter].beneficiariesAddress;
     }
-
-
-
 
     function getInactivityDays(address add) public view returns (uint256) {
         return users[add].inactivityDays;

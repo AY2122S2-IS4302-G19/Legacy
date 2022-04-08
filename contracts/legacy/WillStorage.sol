@@ -266,7 +266,7 @@ contract WillStorage {
     }
 
     modifier authorize(address willWriter, address executor) {
-        require(isAuthorized(willWriter, executor));
+        require(isAuthorized(willWriter, executor), "unauthorized");
         _;
     }
 

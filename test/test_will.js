@@ -185,8 +185,9 @@ contract("Legacy", function (accounts) {
     truffleAssert.eventEmitted(delete1, "deletingWill");
   });
 
-  it("5. Trustee change inactivity days", async () => {
-    let updateWill1 = await legacyInstance.updateWill(
+  it("5a. Trustee not allowed to change inactivity days", async () => {
+    await truffleAssert.fails(
+      legacyInstance.updateWill(
         accounts[1],
         [accounts[2], accounts[3]],
         accounts[2],
@@ -199,8 +200,28 @@ contract("Legacy", function (accounts) {
         [accounts[4]],
         [100],
         { from: accounts[3] }
-      );
-      truffleAssert.eventEmitted(updateWill1, "updatingWill");
+      ),
+      truffleAssert.ErrorType.REVERT,
+      "unauthorized"
+    );
+  });
+
+  it("5b. Custodian can change inactivity days", async () => {
+    let updateWill4 = await legacyInstance.updateWill(
+      accounts[1],
+      [accounts[2], accounts[3]],
+      accounts[2],
+      1,
+      false,
+      false,
+      false,
+      true,
+      367,
+      [accounts[4]],
+      [100],
+      { from: accounts[2] }
+    );
+    truffleAssert.eventEmitted(updateWill4, "updatingWill");
   });
 
   it("6. Submit Death Certificate", async () => {

@@ -13,22 +13,25 @@ contract("Legacy", function (accounts) {
 
   console.log("Testing Legacy Contract");
 
-  it("4a. Add Wills", async () => {
-    // Trigger Trigger
+  it("4a. Add Trustee Trigger Will (A1)", async () => {
+    // Trustee Trigger
     let will1 = await legacyInstance.createWill(
       [accounts[2], accounts[3]], // trustees
       accounts[2], // custodian
       1, // custodianAccess
-      false, // trusteeTrigger
+      true, // trusteeTrigger
       false, // ownWallet
       false, // ownLT
       false, // convertLT
       366, // inactiveDays
-      [accounts[4]], // beneficieries
+      [accounts[2]], // beneficiaries
       [100], // assets to xfer to benefiecieries
       { from: accounts[1], value: 10 } // willWriter & ether to transfer to platform
     );
+    truffleAssert.eventEmitted(will1, "addingWill");
+  });
 
+  it("4b. Add Inactivity Trigger Will (A2)", async () => {
     // Inactivity Trigger
     let will2 = await legacyInstance.createWill(
       [accounts[5], accounts[6]], // trustees
@@ -43,13 +46,29 @@ contract("Legacy", function (accounts) {
       [100], // assets to xfer to benefiecieries
       { from: accounts[2], value: 10 } // willWriter
     );
-
-    truffleAssert.eventEmitted(will1, "addingWill");
     truffleAssert.eventEmitted(will2, "addingWill");
   });
 
-  it("4b. Create Will convert token", async () => {
-    let will1 = await legacyInstance.createWill(
+  it("4c. Add Trustee Trigger Will with Own Wallet (A3)", async () => {
+    // Own Wallet with Trustee Trigger
+    let will3 = await legacyInstance.createWill(
+      [accounts[8]], // trustees
+      [accounts[8]], // custodian
+      1, // custodianAccess
+      true, // trusteeTrigger
+      true, // ownWallet
+      false, // ownLT
+      false, // convertLT
+      0, // inactiveDays
+      [accounts[8]], // beneficieries
+      [100], // assets to xfer to benefiecieries
+      { from: accounts[3], value: 10 } // willWriter
+    );
+    truffleAssert.eventEmitted(will3, "addingWill");
+  });
+
+  it("4d. Add Inactivity Trigger Will with Token Conversion (A4)", async () => {
+    let will4 = await legacyInstance.createWill(
       [accounts[2], accounts[3]], // trustees
       accounts[2], // custodian
       1, // custodianAccess
@@ -62,6 +81,7 @@ contract("Legacy", function (accounts) {
       [100], // assets to xfer to benefiecieries
       { from: accounts[4], value: 250000000000000 } // willWriter & ether to transfer to platform
     );
+    truffleAssert.eventEmitted(will4, "addingWill");
 
     let t1 = await legacyTokenInstance.setInterestRate(100, 60, {
       from: accounts[0],
@@ -76,7 +96,7 @@ contract("Legacy", function (accounts) {
     });
   });
 
-  it("4c. Add Will fails", async () => {
+  it("4e. Cannot add Inactivity Trigger Will with Own Wallet but 0 ETH (A5)", async () => {
     // Own wallet is false, but yet no ether is transferred to the platform
     await truffleAssert.fails(
       legacyInstance.createWill(
@@ -90,13 +110,15 @@ contract("Legacy", function (accounts) {
         366,
         [accounts[4]],
         [100],
-        { from: accounts[1], value: 0 }
+        { from: accounts[5], value: 0 }
       ),
       truffleAssert.ErrorType.REVERT,
       "No ether received when legacy platform as custodian is chosen"
     );
+  });
 
-    // // Inactivity less than 365 days
+  it("4f. Cannot add Inactivity Trigger Will with <365 days (A6)", async () => {
+    // Inactivity less than 365 days
     await truffleAssert.fails(
       legacyInstance.createWill(
         [accounts[2], accounts[3]],
@@ -114,8 +136,10 @@ contract("Legacy", function (accounts) {
       truffleAssert.ErrorType.REVERT,
       "Please set inactivity days to be at least 365 days"
     );
+  });
 
-    // // Beneficiaries and weight information inconsistent
+  it("4g. Cannot add Will if length(beneficiary addresses) != length(beneficiary %s)", async () => {
+    // Beneficiaries and weight information inconsistent
     await truffleAssert.fails(
       legacyInstance.createWill(
         [accounts[2], accounts[3]],
@@ -128,14 +152,14 @@ contract("Legacy", function (accounts) {
         366,
         [accounts[4]],
         [100, 10],
-        { from: accounts[6], value: 10 }
+        { from: accounts[7], value: 10 }
       ),
       truffleAssert.ErrorType.REVERT,
       "Please check beneficiaries and weights information"
     );
   });
 
-  it("4d. Updating Will", async () => {
+  it("4h. Cannot add Will if already exists. (A1)", async () => {
     await truffleAssert.fails(
       legacyInstance.createWill(
         [accounts[2], accounts[3]],
@@ -153,7 +177,9 @@ contract("Legacy", function (accounts) {
       truffleAssert.ErrorType.REVERT,
       "Already has a will with Legacy, use update will function instead"
     );
+  });
 
+  it("4i. Update Will. (A1)", async () => {
     let updateWill1 = await legacyInstance.updateWill(
       accounts[1],
       [accounts[2], accounts[3]],
@@ -171,7 +197,7 @@ contract("Legacy", function (accounts) {
     truffleAssert.eventEmitted(updateWill1, "updatingWill");
   });
 
-  it("4e. Updating beneficiaries", async () => {
+  it("4j. Update beneficiaries (A1)", async () => {
     let update2 = await legacyInstance.updateBeneficiaries(
       [accounts[3], accounts[5]],
       [50, 50],
@@ -180,12 +206,12 @@ contract("Legacy", function (accounts) {
     truffleAssert.eventEmitted(update2, "updatingBeneficiaries");
   });
 
-  it("4f. Removing will", async () => {
+  it("4f. Remove Will (A2)", async () => {
     let delete1 = await legacyInstance.deleteWill({ from: accounts[2] });
     truffleAssert.eventEmitted(delete1, "deletingWill");
   });
 
-  it("5a. Trustee not allowed to change inactivity days", async () => {
+  it("5a. Trustee (A3) cannot change inactivity days of Will with L1 access", async () => {
     await truffleAssert.fails(
       legacyInstance.updateWill(
         accounts[1],
@@ -206,7 +232,7 @@ contract("Legacy", function (accounts) {
     );
   });
 
-  it("5b. Custodian can change inactivity days", async () => {
+  it("5b. Custodian (A2) can change inactivity days of Will with L1 access", async () => {
     let updateWill4 = await legacyInstance.updateWill(
       accounts[1],
       [accounts[2], accounts[3]],
@@ -224,7 +250,7 @@ contract("Legacy", function (accounts) {
     truffleAssert.eventEmitted(updateWill4, "updatingWill");
   });
 
-  it("6. Submit Death Certificate", async () => {
+  it("6. Trustee (A3) submit death certificate for A1 Will", async () => {
     let death1 = await legacyInstance.submitDeathCertificate(
       accounts[1],
       "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",

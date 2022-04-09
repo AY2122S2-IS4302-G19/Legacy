@@ -39,6 +39,10 @@ contract Legacy {
     event submittedDeathCert(address deceased);
     event balance(uint256 bal);
 
+    event addresses_lst(address);
+    event weight_debug(uint256[]);
+    event transferingToBeneficiaries();
+
     modifier hasWill(address add) {
         require(willStorage.hasWill(add), "Please create a Will first");
         _;
@@ -96,6 +100,10 @@ contract Legacy {
             abi.encodeWithSignature("getLegacyToken(address)", willWriter)
         );
         require(success, "token mint failed");
+    }
+
+    function transferToken(address willWriter, address recipient) public {
+
     }
 
     function checkCredit() public returns (uint256) {
@@ -164,8 +172,9 @@ contract Legacy {
         emit deletingWill();
     }
 
-    function executeWill(address willWriter) private view hasWill(willWriter) {
-        if (willStorage.isTrusteeTrigger(willWriter)) {
+    function executeWill(address willWriter) public hasWill(willWriter) {
+        bool isTrustee =  willStorage.isTrusteeTrigger(willWriter);
+        if (isTrustee) {
             require(
                 willStorage.isAuthorized(willWriter, msg.sender),
                 "You are not authorized to execute the trustee will"
@@ -175,8 +184,63 @@ contract Legacy {
                 "User does not have a verified death certificate"
             );
         }
+        
+        transferToBeneficiaries(willWriter);
 
         // Perform the transferring of assets here
+
+    }
+
+    function transferToBeneficiaries(address willWriter) private hasWill(willWriter){
+        bool hasLegacyToken = willStorage.ownsLegacyToken(willWriter);
+        if(hasLegacyToken){
+            transferTokenToBeneficiaries(willWriter);
+        }
+        bool ownWallet  =  willStorage.holdsInOwnWallet(willWriter);
+        if (ownWallet) {
+            bool convertLegacyToken = willStorage.convertToLegacyToken(willWriter);
+            if(convertLegacyToken){
+                //conver to legacy token;
+                convertToLegacyToken(willWriter);
+                transferTokenToBeneficiaries(willWriter);
+            }else{
+                transferEtherToBeneficiaries(willWriter);
+            }
+        }
+    
+    }
+
+    function transferTokenToBeneficiaries(address willWriter) private {
+        address[] memory addresses = willStorage.getBenficiariesAddress(willWriter);
+        uint256[] memory weights = willStorage.getBenficiariesWeights(addresses, willWriter);
+        uint256 tokenBalances = lt.checkLTCredit(willWriter);
+        for(uint8 i = 0; i < weights.length; i ++){
+            address recipient = addresses[i];
+            uint256 token = tokenBalances * (weights[i]/100);
+            lt.transferToken(willWriter,recipient, token);
+        }
+    }
+
+    function transferEtherToBeneficiaries(address willWriter) private {
+        address[] memory addresses = willStorage.getBenficiariesAddress(willWriter);
+        uint256[] memory weights = willStorage.getBenficiariesWeights(addresses, willWriter);
+        uint256 etherBalances = escrow.getEtherBal(willWriter);
+
+        for(uint8 i = 1; i < weights.length; i ++){
+            address recipient = addresses[i-1];
+            uint256 eth = etherBalances * (weights[i]/100);
+            escrow.transferEther(willWriter, recipient, eth);
+        }
+        
+    }
+
+    function convertToLegacyToken(address willWriter) payable public {
+        uint256 etherBalances = escrow.getEtherBal(willWriter);
+        escrow.transferEther(willWriter, address(this), etherBalances);
+        (bool success, ) = payable(address(this)).call{value: etherBalances}(
+                abi.encodeWithSignature("getToken(address)", willWriter)
+            );
+        require(success,"Conversion to legacy token fail");
     }
 
     function submitDeathCertificate(address willWriter, string memory url)
@@ -189,7 +253,7 @@ contract Legacy {
 
     // just throw this method into the most used function and
     // that's how inactivity wills will get triggered
-    function triggerInactivityWills() private view {
+    function triggerInactivityWills() private  {
         for (uint256 i = 1; i <= willStorage.getNumWill(); i++) {
             address add = willStorage.getAddressById(i);
             if (!willStorage.isTrusteeTrigger(add)) {

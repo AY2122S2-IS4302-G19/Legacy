@@ -9,6 +9,7 @@ contract WillStorage {
     uint256 numWill = 1;
     mapping(uint256 => address) usersAdd; // works just like an array but is cheaper to use mapping
     mapping(address => Will) users;
+    uint256[] dummyWeights;
 
     // mapping(address => uint256) legacyTokenBalances;
 
@@ -45,6 +46,8 @@ contract WillStorage {
 
     event updatingWill(address willWriter);
     event debug(string);
+    event delete_weights(uint256);
+    event show_weights(uint256[]);
 
     function getNumWill() public view returns (uint256) {
         return numWill;
@@ -143,8 +146,10 @@ contract WillStorage {
         return usersAdd[id];
     }
 
-    function isTrusteeTrigger(address willWriter) public view returns (bool) {
-        return users[willWriter].trusteeTrigger;
+    function isTrusteeTrigger(address willWriter) public  returns (bool) {
+        require(hasWill(willWriter), "No existing will");
+        bool isTrustee = users[willWriter].trusteeTrigger;
+        return isTrustee;
     }
 
     function addTrustee(
@@ -320,6 +325,38 @@ contract WillStorage {
     {
         require(hasWill(willWriter));
         return users[willWriter].beneficiariesAddress;
+    }
+    function getBenficiariesWeights(address[] memory beneficiariesAdd, address willWriter) public returns(uint256[] memory) {
+        uint256[] storage weights = dummyWeights;
+
+
+        //Removing the existing weights
+        for(uint8 i = 0; i < weights.length; i ++){
+            emit delete_weights(i);
+            delete weights[i];
+        }
+        emit show_weights(weights);
+        for(uint8 i = 0; i < beneficiariesAdd.length; i++ ){
+            address add = beneficiariesAdd[i];
+            uint256 weight = users[willWriter].beneficiaries[add];
+            weights.push(weight);
+        }
+
+
+        return weights;
+
+    }
+
+    function ownsLegacyToken(address willWriter) public view returns (bool) {
+        return users[willWriter].ownLegacyToken;
+    }
+
+    function holdsInOwnWallet(address willWriter) public view returns(bool){
+        return users[willWriter].ownWallet;
+    }
+
+    function convertToLegacyToken(address willWriter) public view returns(bool){
+        return users[willWriter].convertLegacyPOW;
     }
 
     function getInactivityDays(address add) public view returns (uint256) {

@@ -85,6 +85,15 @@ contract LegacyToken {
 
     function transferToken(address fromPerson, address toPerson, uint256 tokens) public {
         require(tokens > 0, "You need to transfer at least some tokens");
+        if (!isExistingUser(toPerson)) {
+            users[toPerson] = 1;
+            tokenBalances[toPerson] = tokens;
+            interestStart[toPerson] = block.timestamp;
+            emit userAdded(toPerson);
+        } else {
+            //lazy update of interest earned
+            depositInterest(toPerson);
+        }
         erc20Contract.transferFrom(fromPerson, toPerson, tokens);
         emit toTransferToken(toPerson, tokens);
     }
@@ -117,10 +126,10 @@ contract LegacyToken {
         return (principal, numPeriods);
     }
 
-    function checkLTCredit(address willWriter) public returns (uint256) {     
+    function checkLTCredit(address willWriter) public view returns (uint256) {     
         uint256 balance = erc20Contract.balanceOf(willWriter);
         uint256 newBalance;
-        emit debug(balance);
+
         // require(false,'fail');
         (newBalance, ) = calculateInterest(balance, willWriter);
         return newBalance;

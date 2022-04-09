@@ -19,6 +19,8 @@ contract Escrow {
     mapping(address => uint256) ltAmt;
     mapping(address => uint256) etherAmt;
 
+    event etherBal(uint256,uint256);
+
     constructor(LegacyToken _lt) {
         gasPrice = 2300;
         lt = _lt;
@@ -58,9 +60,10 @@ contract Escrow {
     }
 
     function transferEther(address from, address to, uint256 amt) public {
-        require(etherAmt[from] > amt);
-        etherAmt[to] = etherAmt[to].add(amt);
-        etherAmt[from] = etherAmt[from].sub(amt);
+        // emit etherBal(etherAmt[from], amt);
+        // require(etherAmt[from] >= amt,'Not enough ether');
+        // etherAmt[to] = etherAmt[to].add(amt);
+        // etherAmt[from] = etherAmt[from].sub(amt);
     }
 
     function transferLT(address from, address to, uint256 amt) public {

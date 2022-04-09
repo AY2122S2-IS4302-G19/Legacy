@@ -4,11 +4,15 @@ var assert = require("assert");
 
 var WillStorage = artifacts.require("../contracts/WillStorage.sol");
 var Legacy = artifacts.require("../contracts/Legacy.sol");
+var DeathOracle = artifacts.require('../contracts/api/DeathOracle.sol');
+var Escrow = artifacts.require('../contracts/apis/Escrow.sol');
 
 contract("Legacy", function (accounts) {
   before(async () => {
     willInstance = await WillStorage.deployed();
     legacyInstance = await Legacy.deployed();
+    DeathOracleInstance = await DeathOracle.deployed();
+    EscrowInstance = await Escrow.deployed();
   });
 
   console.log("Testing Legacy Contract");
@@ -336,4 +340,82 @@ contract("Legacy", function (accounts) {
     );
     truffleAssert.eventEmitted(death1, "submittedDeathCert");
   });
+
+
+    it("8a. Activate will from Custodian/Trustee (Legacy Token)", async () => {
+        let will4 = await legacyInstance.createWill(
+          [accounts[2], accounts[3]], // trustees
+          accounts[2], // custodian
+          2, // custodianAccess
+          true, // trusteeTrigger
+          false, // ownWallet
+          true, // ownLT
+          false, // convertLT
+          366, // inactiveDays
+          [accounts[2]], // beneficiaries
+          [100], // assets to xfer to beneficiaries
+          { from: accounts[8], value: 250000000000000 } // willWriter & ether to transfer to platform
+        );
+        let t1 = await legacyTokenInstance.setInterestRate(100, 60, {
+            from: accounts[0],
+          });
+        truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
+            return ev.rate == 100 && ev.period == 60;
+          });
+
+      let bal1 = await legacyInstance.checkCredit({ from: accounts[8] });
+      truffleAssert.eventEmitted(bal1, "balance", (ev) => {
+        return ev.bal == 100;
+      });
+      let death1 = await legacyInstance.submitDeathCertificate(
+            accounts[4],
+            "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
+            { from: accounts[8] }
+      );
+      truffleAssert.eventEmitted(death1, "submittedDeathCert");
+
+      let verifyDeath = await DeathOracleInstance.verify(accounts[8],{from:accounts[0]});
+      let execute1 = await legacyInstance.executeWill(accounts[8],{from:accounts[2]})
+
+      let bal2 = await legacyInstance.checkCredit({ from: accounts[2] });
+      truffleAssert.eventEmitted(bal1, "balance", (ev) => {
+        return ev.bal == 100;
+      });
+    })
+
+    it("8b. Activate will from Custodian/Trustee (Own Wallet Ether)", async () => {
+        let will4 = await legacyInstance.createWill(
+          [accounts[2], accounts[3]], // trustees
+          accounts[2], // custodian
+          2, // custodianAccess
+          true, // trusteeTrigger
+          true, // ownWallet
+          false, // ownLT
+          false, // convertLT
+          366, // inactiveDays
+          [accounts[7]], // beneficiaries
+          [100], // assets to xfer to beneficiaries
+          { from: accounts[0], value: 250000000000000 } // willWriter & ether to transfer to platform
+        );
+       
+
+      let bal1 = await EscrowInstance.getEtherBal(accounts[0],{from:accounts[0]}) 
+      assert(bal1 ==250000000000000 );
+
+      let death1 = await legacyInstance.submitDeathCertificate(
+            accounts[0],
+            "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
+            { from: accounts[3] }
+      );
+      truffleAssert.eventEmitted(death1, "submittedDeathCert");
+
+      let verifyDeath = await DeathOracleInstance.verify(accounts[0],{from:accounts[0]});
+      let execute1 = await legacyInstance.executeWill(accounts[0],{from:accounts[3]})
+
+      let balCheck = await EscrowInstance.getEtherBal(accounts[0],{from:accounts[0]})
+      assert(balCheck ==250000000000000 );
+
+    })
+
+
 });

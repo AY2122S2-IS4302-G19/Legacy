@@ -99,7 +99,7 @@ contract WillStorage {
         userWill.ownWallet = ownWallet;
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
-        userWill.inactivityDays = inactivityDays;
+        userWill.inactivityDays = trusteeTrigger ? 1095 : inactivityDays;
         userWill.beneficiariesAddress = beneficiariesAddress;
         addBeneficiares(willWriter, beneficiariesAddress, weights);
         usersAdd[numWill] = willWriter;
@@ -129,7 +129,7 @@ contract WillStorage {
         userWill.ownWallet = ownWallet;
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
-        userWill.inactivityDays = inactivityDays;
+        userWill.inactivityDays = trusteeTrigger ? 1095 : inactivityDays;
         updateBeneficiares(willWriter, beneficiariesAddress, weights);
     }
 
@@ -146,7 +146,7 @@ contract WillStorage {
         return usersAdd[id];
     }
 
-    function isTrusteeTrigger(address willWriter) public  returns (bool) {
+    function isTrusteeTrigger(address willWriter) public returns (bool) {
         require(hasWill(willWriter), "No existing will");
         bool isTrustee = users[willWriter].trusteeTrigger;
         return isTrustee;

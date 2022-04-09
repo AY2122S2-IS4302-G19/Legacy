@@ -256,13 +256,11 @@ contract Legacy {
     function triggerInactivityWills() private  {
         for (uint256 i = 1; i <= willStorage.getNumWill(); i++) {
             address add = willStorage.getAddressById(i);
-            if (!willStorage.isTrusteeTrigger(add)) {
-                if (
-                    block.timestamp - willStorage.getInactivityDays(add) >
-                    transactionOracle.getLatestTransactionTimestamp(add)
-                ) {
-                    executeWill(add);
-                }
+            if (
+                block.timestamp - willStorage.getInactivityDays(add) >
+                transactionOracle.getLatestTransactionTimestamp(add)
+            ) {
+                executeWill(add);
             }
         }
     }

@@ -2,6 +2,8 @@
 pragma solidity >=0.6.0;
 
 import "./ERC20.sol";
+import "./apis/ExchangeRateOracle.sol";
+
 
 //Requries legal authority - suppose legal authorithy have address of ___
 //Since we are encouraging people to use our Token, there is no limit as to how much they can have
@@ -10,8 +12,10 @@ import "./ERC20.sol";
 // 2% of LT token as transferFee for transferring from token other currency > token is transfered to owner. 98% of token is converted to ether sent to msg.sender
 
 
+
 contract LegacyToken {
     ERC20 erc20Contract;
+    ExchangeRateOracle exchangeRateOracle;
     address payable legacyOwner;
     uint256 getCreditFee = 1;
     
@@ -22,21 +26,23 @@ contract LegacyToken {
     uint256 interestPeriod;
 
 
-    constructor() {
+    constructor(ExchangeRateOracle er) {
         ERC20 e = new ERC20();
         erc20Contract = e;
+        exchangeRateOracle = er;
         legacyOwner = payable(msg.sender);
-        interestRate = 0;
+        interestRate = 101;
+        interestPeriod = 31536000;
     }
 
     event getToken(uint256 numTokens);
     event userAdded(address newUser);
     event sellToken(uint256 tokens); 
     event toTransferToken(address toPerson, uint256 tokens); 
+    event getBalance(uint256 balance);
 
     event interestRateSet(uint256 rate, uint256 period);
     event depositedInterest(uint256 newBalance, uint256 interestStart);
-    event debug(uint256 bug);
 
 
     function isExistingUser(address sender) public view returns (bool) {
@@ -48,7 +54,7 @@ contract LegacyToken {
 
     function getLegacyToken(address willWriter) external payable {
         require(msg.value >0 ,"No ether received");
-        uint256 amt = msg.value / 2500000000000;
+        uint256 amt = msg.value / exchangeRateOracle.getEtherSGDExchangeRate();
 
        
         if (!isExistingUser(willWriter)) {
@@ -127,7 +133,7 @@ contract LegacyToken {
         return (principal, numPeriods);
     }
 
-    function checkLTCredit(address willWriter) public view returns (uint256) {   
+    function checkLTCredit(address willWriter) public returns (uint256) {   
         uint256 balance = erc20Contract.balanceOf(willWriter);
         if (balance == 0) {
             return 0;
@@ -136,6 +142,7 @@ contract LegacyToken {
 
         // require(false,'fail');
         (newBalance, ) = calculateInterest(balance, willWriter);
+        emit getBalance(newBalance);
         return newBalance;
     }
 

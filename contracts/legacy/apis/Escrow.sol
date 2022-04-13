@@ -42,7 +42,7 @@ contract Escrow {
         }
     }
 
-    function getLTBal(address add) public view returns (uint256) {
+    function getLTBal(address add) public returns (uint256) {
         if (add == address(0)) {
             return lt.checkLTCredit(msg.sender);
         } else {

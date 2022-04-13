@@ -1,2 +1,3 @@
 
 build/contracts/*.json
+.DS_Store

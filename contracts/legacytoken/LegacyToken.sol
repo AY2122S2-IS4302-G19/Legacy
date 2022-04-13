@@ -23,6 +23,7 @@ contract LegacyToken {
         ERC20 e = new ERC20();
         erc20Contract = e;
         legacyOwner = payable(msg.sender);
+        interestRate = 0;
     }
 
     event getToken();

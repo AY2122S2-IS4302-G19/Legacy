@@ -126,8 +126,11 @@ contract LegacyToken {
         return (principal, numPeriods);
     }
 
-    function checkLTCredit(address willWriter) public view returns (uint256) {     
+    function checkLTCredit(address willWriter) public view returns (uint256) {   
         uint256 balance = erc20Contract.balanceOf(willWriter);
+        if (balance == 0) {
+            return 0;
+        }
         uint256 newBalance;
 
         // require(false,'fail');

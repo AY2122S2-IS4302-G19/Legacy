@@ -42,7 +42,7 @@ contract Escrow {
         }
     }
 
-    function getLTBal(address add) public returns (uint256) {
+    function getLTBal(address add) public view returns (uint256) {
         if (add == address(0)) {
             return lt.checkLTCredit(msg.sender);
         } else {
@@ -60,10 +60,10 @@ contract Escrow {
     }
 
     function transferEther(address from, address to, uint256 amt) public {
-        // emit etherBal(etherAmt[from], amt);
-        // require(etherAmt[from] >= amt,'Not enough ether');
-        // etherAmt[to] = etherAmt[to].add(amt);
-        // etherAmt[from] = etherAmt[from].sub(amt);
+        emit etherBal(etherAmt[from], amt);
+        require(etherAmt[from] >= amt,'Not enough ether');
+        etherAmt[from] = etherAmt[from].sub(amt);
+        etherAmt[to] = etherAmt[to].add(amt);
     }
 
     function transferLT(address from, address to, uint256 amt) public {

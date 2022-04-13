@@ -126,7 +126,7 @@ contract Legacy {
         address[] memory beneficiariesAddress,
         uint256[] memory weights
     ) public {
-        willStorage.updateBeneficiares(
+        willStorage.updateBeneficiaries(
             msg.sender,
             beneficiariesAddress,
             weights
@@ -226,8 +226,8 @@ contract Legacy {
         uint256[] memory weights = willStorage.getBenficiariesWeights(addresses, willWriter);
         uint256 etherBalances = escrow.getEtherBal(willWriter);
 
-        for(uint8 i = 1; i < weights.length; i ++){
-            address recipient = addresses[i-1];
+        for(uint8 i=0; i < weights.length; i++){
+            address recipient = addresses[i];
             uint256 eth = etherBalances * (weights[i]/100);
             escrow.transferEther(willWriter, recipient, eth);
         }

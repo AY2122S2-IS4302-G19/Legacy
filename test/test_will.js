@@ -342,80 +342,83 @@ contract("Legacy", function (accounts) {
   });
 
 
-    it("8a. Activate will from Custodian/Trustee (Legacy Token)", async () => {
-        let will4 = await legacyInstance.createWill(
-          [accounts[2], accounts[3]], // trustees
-          accounts[2], // custodian
-          2, // custodianAccess
-          true, // trusteeTrigger
-          false, // ownWallet
-          true, // ownLT
-          false, // convertLT
-          366, // inactiveDays
-          [accounts[2]], // beneficiaries
-          [100], // assets to xfer to beneficiaries
-          { from: accounts[8], value: 250000000000000 } // willWriter & ether to transfer to platform
-        );
-        let t1 = await legacyTokenInstance.setInterestRate(100, 60, {
-            from: accounts[0],
-          });
-        truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
-            return ev.rate == 100 && ev.period == 60;
-          });
 
-      let bal1 = await legacyInstance.checkCredit({ from: accounts[8] });
-      truffleAssert.eventEmitted(bal1, "balance", (ev) => {
-        return ev.bal == 100;
-      });
-      let death1 = await legacyInstance.submitDeathCertificate(
-            accounts[4],
-            "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
-            { from: accounts[8] }
-      );
-      truffleAssert.eventEmitted(death1, "submittedDeathCert");
+  it("7a. Activate will from Custodian/Trustee (Legacy Token)", async () => {
+    let will4 = await legacyInstance.createWill(
+      [accounts[2], accounts[3]], // trustees
+      accounts[2], // custodian
+      2, // custodianAccess
+      true, // trusteeTrigger
+      false, // ownWallet
+      true, // ownLT
+      false, // convertLT
+      366, // inactiveDays
+      [accounts[2]], // beneficiaries
+      [100], // assets to xfer to beneficiaries
+      { from: accounts[8], value: 250000000000000 } // willWriter & ether to transfer to platform
+    );
 
-      let verifyDeath = await DeathOracleInstance.verify(accounts[8],{from:accounts[0]});
-      let execute1 = await legacyInstance.executeWill(accounts[8],{from:accounts[2]})
+    let bal1 = await legacyInstance.checkCredit({ from: accounts[8] });
+    truffleAssert.eventEmitted(bal1, "balance", (ev) => {
+      return ev.bal == 100;
+    });
+    let bal2 = await legacyInstance.checkCredit({ from: accounts[2] });
+    truffleAssert.eventEmitted(bal2, "balance", (ev) => {
+      return ev.bal == 0;
+    });
 
-      let bal2 = await legacyInstance.checkCredit({ from: accounts[2] });
-      truffleAssert.eventEmitted(bal1, "balance", (ev) => {
-        return ev.bal == 100;
-      });
-    })
+    let death1 = await legacyInstance.submitDeathCertificate(
+      accounts[8],
+      "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
+      { from: accounts[2] }
+    );
+    truffleAssert.eventEmitted(death1, "submittedDeathCert");
 
-    it("8b. Activate will from Custodian/Trustee (Own Wallet Ether)", async () => {
-        let will4 = await legacyInstance.createWill(
-          [accounts[2], accounts[3]], // trustees
-          accounts[2], // custodian
-          2, // custodianAccess
-          true, // trusteeTrigger
-          true, // ownWallet
-          false, // ownLT
-          false, // convertLT
-          366, // inactiveDays
-          [accounts[7]], // beneficiaries
-          [100], // assets to xfer to beneficiaries
-          { from: accounts[0], value: 250000000000000 } // willWriter & ether to transfer to platform
-        );
-       
+    let verifyDeath1 = await DeathOracleInstance.verify(accounts[8], { from: accounts[0] });
+    let execute1 = await legacyInstance.executeWill(accounts[8], { from: accounts[2] })
 
-      let bal1 = await EscrowInstance.getEtherBal(accounts[0],{from:accounts[0]}) 
-      assert(bal1 ==250000000000000 );
+    let bal3 = await legacyInstance.checkCredit({ from: accounts[8] });
+    truffleAssert.eventEmitted(bal3, "balance", (ev) => {
+      return ev.bal == 0;
+    });
+    let bal4 = await legacyInstance.checkCredit({ from: accounts[2] });
+    truffleAssert.eventEmitted(bal4, "balance", (ev) => {
+      return ev.bal == 100;
+    });
+  }) 
 
-      let death1 = await legacyInstance.submitDeathCertificate(
-            accounts[0],
-            "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
-            { from: accounts[3] }
-      );
-      truffleAssert.eventEmitted(death1, "submittedDeathCert");
+  it("7b. Activate will from Custodian/Trustee (Own Wallet Ether)", async () => {
+    let will5 = await legacyInstance.createWill(
+      [accounts[2], accounts[3]], // trustees
+      accounts[2], // custodian
+      2, // custodianAccess
+      true, // trusteeTrigger
+      true, // ownWallet
+      false, // ownLT
+      false, // convertLT
+      366, // inactiveDays
+      [accounts[7]], // beneficiaries
+      [100], // % assets to xfer to beneficiaries
+      { from: accounts[9], value: 250000000000000 } // willWriter & ether to transfer to platform
+    );
 
-      let verifyDeath = await DeathOracleInstance.verify(accounts[0],{from:accounts[0]});
-      let execute1 = await legacyInstance.executeWill(accounts[0],{from:accounts[3]})
+    let b1 = await EscrowInstance.getEtherBal(accounts[9], { from: accounts[0] })
+    assert(b1 == 250000000000000);
+    let b2 = await EscrowInstance.getEtherBal(accounts[7], { from: accounts[0] })
+    assert(b2 == 0);
 
-      let balCheck = await EscrowInstance.getEtherBal(accounts[0],{from:accounts[0]})
-      assert(balCheck ==250000000000000 );
+    let death2 = await legacyInstance.submitDeathCertificate(
+      accounts[9],
+      "https://upload.wikimedia.org/wikipedia/commons/0/06/Eddie_August_Schneider_%281911-1940%29_death_certificate.gif",
+      { from: accounts[3] }
+    );
+    truffleAssert.eventEmitted(death2, "submittedDeathCert");
 
-    })
+    let verifyDeath2 = await DeathOracleInstance.verify(accounts[9], { from: accounts[0] });
 
-
+    let b3 = await EscrowInstance.getEtherBal(accounts[9], { from: accounts[0] })
+    assert(b3 == 250000000000000);
+    let b4 = await EscrowInstance.getEtherBal(accounts[7], { from: accounts[0] })
+    assert(b4 == 0);
+  })
 });

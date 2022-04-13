@@ -64,7 +64,7 @@ contract WillStorage {
         bool ownLegacyToken,
         bool convertLegacyPOW,
         uint16 inactivityDays,
-        address[] memory beneficiariesAddress,
+        address[] memory beneficiariesAddresses,
         uint256[] memory weights
     ) public payable returns (uint256) {
         require(
@@ -81,8 +81,8 @@ contract WillStorage {
                 "Please set inactivity days to be at least 365 days"
             );
         require(
-            beneficiariesAddress.length != 0 &&
-                beneficiariesAddress.length == weights.length,
+            beneficiariesAddresses.length != 0 &&
+                beneficiariesAddresses.length == weights.length,
             "Please check beneficiaries and weights information"
         );
         require(equals100pct(weights), "Weights must add up to 100%");
@@ -100,8 +100,8 @@ contract WillStorage {
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = trusteeTrigger ? 1095 : inactivityDays;
-        userWill.beneficiariesAddress = beneficiariesAddress;
-        addBeneficiares(willWriter, beneficiariesAddress, weights);
+        userWill.beneficiariesAddress = beneficiariesAddresses;
+        addBeneficiares(willWriter, beneficiariesAddresses, weights);
         usersAdd[numWill] = willWriter;
         return numWill;
     }
@@ -130,7 +130,7 @@ contract WillStorage {
         userWill.ownLegacyToken = ownLegacyToken;
         userWill.convertLegacyPOW = convertLegacyPOW;
         userWill.inactivityDays = trusteeTrigger ? 1095 : inactivityDays;
-        updateBeneficiares(willWriter, beneficiariesAddress, weights);
+        updateBeneficiaries(willWriter, beneficiariesAddress, weights);
     }
 
     function removeWill(address willWriter) public {
@@ -146,7 +146,7 @@ contract WillStorage {
         return usersAdd[id];
     }
 
-    function isTrusteeTrigger(address willWriter) public returns (bool) {
+    function isTrusteeTrigger(address willWriter) public view returns (bool) {
         require(hasWill(willWriter), "No existing will");
         bool isTrustee = users[willWriter].trusteeTrigger;
         return isTrustee;
@@ -167,7 +167,7 @@ contract WillStorage {
     ) public authorize(willWriter, executor) {
         for (uint256 i = 0; i < users[willWriter].trustees.length; i++) {
             if (users[willWriter].trustees[i] == trustee) {
-                delete users[willWriter].trustees[i];
+                users[willWriter].trustees[i] = address(0);
             }
         }
     }
@@ -217,27 +217,16 @@ contract WillStorage {
 
     function addBeneficiares(
         address willWriter,
-        address[] memory beneficiariesAddress,
-        uint256[] memory weight
+        address[] memory addresses,
+        uint256[] memory weightss
     ) private {
         Will storage userWill = users[willWriter];
-        for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
-            userWill.beneficiaries[beneficiariesAddress[i]] = weight[i];
+        for (uint256 i = 0; i < addresses.length; i++) {
+            userWill.beneficiaries[addresses[i]] = weightss[i];
         }
     }
 
-    // function removeBeneficiares(
-    //     address willWriter,
-    //     address[] memory beneficiariesAddress
-    // ) private {
-    //     Will storage userWill = users[willWriter];
-    //     for (uint256 i = 0; i < beneficiariesAddress.length; i++) {
-    //         userWill.totalAmount -= userWill.beneficiaries[beneficiariesAddress[i]];
-    //         userWill.beneficiaries[beneficiariesAddress[i]] = 0;
-    //     }
-    // }
-
-    function updateBeneficiares(
+    function updateBeneficiaries(
         address willWriter,
         address[] memory beneficiariesAddress,
         uint256[] memory weights
@@ -252,7 +241,7 @@ contract WillStorage {
         // Removing the existing beneficiaries
         for (uint256 i = 0; i < currentBeneficiariesAddress.length; i++) {
             address add = currentBeneficiariesAddress[i];
-            delete currentBeneficiariesMapping[add];
+            currentBeneficiariesMapping[add] = 0;
         }
 
         //Replacing with new beneficiaries
@@ -326,6 +315,7 @@ contract WillStorage {
         require(hasWill(willWriter));
         return users[willWriter].beneficiariesAddress;
     }
+    
     function getBenficiariesWeights(address[] memory beneficiariesAdd, address willWriter) public returns(uint256[] memory) {
         uint256[] storage weights = dummyWeights;
 
@@ -333,7 +323,7 @@ contract WillStorage {
         //Removing the existing weights
         for(uint8 i = 0; i < weights.length; i ++){
             emit delete_weights(i);
-            delete weights[i];
+            weights[i] = 0;
         }
         emit show_weights(weights);
         for(uint8 i = 0; i < beneficiariesAdd.length; i++ ){

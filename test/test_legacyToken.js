@@ -15,36 +15,62 @@ contract('LegacyToken', function(accounts) {
 
     console.log("Testing Legacy Token Contract");
 
-    it('1a. Buy LT Token', async() => {
-        let t1 = await legacyTokenInstance.getLegacyToken(accounts[1], {from: accounts[1], value: 250000000000000});
-        truffleAssert.eventEmitted(t1, "getToken", (ev) => {
-            return ev.numTokens == 100;
-        });
-        truffleAssert.eventEmitted(t1, "userAdded");
-    })
-
-    it('1b. Set Interest Rate to 1% and interest compounding rate to 1 year', async() => {
-        let t1 = await legacyTokenInstance.setInterestRate(101, 31536000, {from: accounts[0]});
+    it('1a. Set Interest Rate to 5% and interest compounding rate to 1 year', async() => {
+        let t1 = await legacyTokenInstance.setInterestRate(105, 31536000, {from: accounts[0]});
         truffleAssert.eventEmitted(t1, "interestRateSet", (ev) => {
-            return ev.rate == 101 && ev.period == 31536000;
+            return ev.rate == 105 && ev.period == 31536000;
         })
     })
 
-    it('1c. Returning user buys LT Token', async() => {
-        let t1 = await legacyTokenInstance.getLegacyToken(accounts[1],{from: accounts[1], value: 250000000000000});
-        truffleAssert.eventEmitted(t1, "getToken");
-        truffleAssert.eventNotEmitted(t1, "userAdded");
-        truffleAssert.eventEmitted(t1, "depositedInterest", (ev) => {
-            return ev.newBalance == 100;
+    it('1b. Buy LT Token', async() => {
+        let buy = await legacyTokenInstance.getLegacyToken(accounts[1], {from: accounts[1], value: 2000000000000000});
+        let balance = await legacyTokenInstance.checkLTCredit(accounts[1]);
+        truffleAssert.eventEmitted(buy, "userAdded");
+        truffleAssert.eventEmitted(balance, "getBalance", (ev) => {
+            return ev.balance == 1000
         });
     })
 
+    it('1c. Returning user buys LT Token', async() => {
+        let t1 = await legacyTokenInstance.getLegacyToken(accounts[1],{from: accounts[1], value: 20000000000000});
+        let t2 = await legacyTokenInstance.checkLTCredit(accounts[1]);
+        truffleAssert.eventEmitted(t1, "getToken");
+        truffleAssert.eventNotEmitted(t1, "userAdded");
+        truffleAssert.eventEmitted(t2, "getBalance", (ev) => {
+            return ev.balance == 1010;
+        })
+
+    })
+
     it("1d. Buying Legacy token through Legacy", async () =>{
-        let tok1 = await legacyInstance.getToken(accounts[2],{from:accounts[2], value:250000000000000});
+        let tok1 = await legacyInstance.getToken(accounts[2],{from:accounts[2], value:200000000000000});
         let credit = await legacyInstance.checkCredit({from:accounts[2]});
         truffleAssert.eventEmitted(credit, "balance", (ev) => {
             return ev.bal == 100
         });
+    })
+
+    it("1e. Selling legacy token", async () => {
+        let sell = await legacyTokenInstance.sellLegacyToken(10, {from: accounts[1], value:2000000000000});
+        let balance = await legacyTokenInstance.checkLTCredit(accounts[1]);
+        truffleAssert.eventEmitted(sell, "sellToken", (ev) => {
+            return ev.tokens == 10 && ev.etherReceived == 10 * 2000000000000;
+        });
+        truffleAssert.eventEmitted(balance, "getBalance", (ev) => {
+            return ev.balance == 1000
+        })
+    })
+
+    it("1f. Transfer Legacy Token", async () => {
+        let transfer = await legacyTokenInstance.transferToken(accounts[3], 1000, {from: accounts[1]});
+        let fromBalance = await legacyTokenInstance.checkLTCredit(accounts[1]);
+        let toBalance = await legacyTokenInstance.checkLTCredit(accounts[3]);
+        truffleAssert.eventEmitted(fromBalance, "getBalance", (ev) => {
+            return ev.balance == 0;
+        })
+        truffleAssert.eventEmitted(toBalance, "getBalance", (ev) => {
+            return ev.balance == 1000;
+        })
     })
 });
 
@@ -65,12 +91,12 @@ contract('Legacy Token Time Dependent Tests', function (accounts) {
     });
  
     it('2a. Buy Legacy Token and check balance plus interest earned after 1 year', async () => {
-        let t1 = await legacyTokenInstance.getLegacyToken(accounts[1], {from: accounts[1], value: 250000000000000});
+        let t1 = await legacyTokenInstance.getLegacyToken(accounts[1], {from: accounts[1], value: 2000000000000000});
         await timeMachine.advanceTimeAndBlock(31536000);
 
         let balance = await legacyTokenInstance.checkLTCredit(accounts[1], {from: accounts[1]});
         truffleAssert.eventEmitted(balance, "getBalance", (ev) => {
-            return ev.balance == 101;
+            return ev.balance == 1010;
         })
     });
  });

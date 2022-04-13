@@ -2,3 +2,6 @@
 node_modules/*
 build/contracts/*.json
 .DS_Store
+node_modules/assertion-error/package.json
+node_modules/lodash.isequal/package.json
+node_modules/truffle-assertions/package.json

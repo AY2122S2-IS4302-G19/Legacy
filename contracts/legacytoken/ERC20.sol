@@ -125,8 +125,8 @@ contract ERC20 {
 
   function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (uint256) {
     balances[_from] = balances[_from].sub(_amount);
-    uint256 etherFee = _amount.mul(2500000000000);
-    uint256 transferFee =  etherFee.div(2500000000000000);
+    uint256 etherFee = _amount.mul(2000000000000);
+    uint256 transferFee =  etherFee.div(2000000000000000);
     uint256 remaining = etherFee.sub(transferFee);
 
     totalSupply_ = totalSupply_.sub(_amount);

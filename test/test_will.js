@@ -83,7 +83,7 @@ contract("Legacy", function (accounts) {
       366, // inactiveDays
       [accounts[2]], // beneficiaries
       [100], // assets to xfer to beneficiaries
-      { from: accounts[4], value: 250000000000000 } // willWriter & ether to transfer to platform
+      { from: accounts[4], value: 200000000000000 } // willWriter & ether to transfer to platform
     );
     truffleAssert.eventEmitted(will4, "addingWill");
 
@@ -355,7 +355,7 @@ contract("Legacy", function (accounts) {
       366, // inactiveDays
       [accounts[2]], // beneficiaries
       [100], // assets to xfer to beneficiaries
-      { from: accounts[8], value: 250000000000000 } // willWriter & ether to transfer to platform
+      { from: accounts[8], value: 200000000000000 } // willWriter & ether to transfer to platform
     );
 
     let bal1 = await legacyInstance.checkCredit({ from: accounts[8] });

@@ -1,53 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0 <0.9.0;
 //first need to approve the address of spender 
 // Check the allowance
 //Finally able to call transferFrom to transfer tokens
 
-/**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
- */
-library SafeMath {
-
-  /**
-  * @dev Multiplies two numbers, throws on overflow.
-  */
-  function mul(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    if (a == 0) {
-      return 0;
-    }
-    c = a * b;
-    assert(c / a == b);
-    return c;
-  }
-
-  /**
-  * @dev Integer division of two numbers, truncating the quotient.
-  */
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    // uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return a / b;
-  }
-
-  /**
-  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
-  */
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  /**
-  * @dev Adds two numbers, throws on overflow.
-  */
-  function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
+import "./SafeMath.sol";
 
 contract ERC20 {
     using SafeMath for uint256;
@@ -115,11 +72,11 @@ contract ERC20 {
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
     require(_to != address(0));
     require(_value <= balances[_from], "From doesn't have enough balance");
-    require(_value <= allowed[_from][tx.origin], "Not allowed to spend this much");
+    // require(_value <= allowed[_from][tx.origin], "Not allowed to spend this much");
 
     balances[_from] = balances[_from].sub(_value);
     balances[_to] = balances[_to].add(_value);
-    allowed[_from][tx.origin] = allowed[_from][tx.origin].sub(_value);
+    // allowed[_from][tx.origin] = allowed[_from][tx.origin].sub(_value);
     emit Transfer(_from, _to, _value);
     return true;
   }
@@ -168,25 +125,15 @@ contract ERC20 {
 
   function unmint(address _from, uint256 _amount) onlyOwner canMint public returns (uint256) {
     balances[_from] = balances[_from].sub(_amount);
-    uint256 etherFee = _amount.mul(10000000000000000).div(2);
-    uint256 transferFee =  etherFee.mul(5);
-    transferFee = transferFee.div(1000);
-    uint256 tokenFee = transferFee.div(10000000000000000).mul(2);
-    uint256 remainingLT = _amount.sub(tokenFee);
+    uint256 etherFee = _amount.mul(2500000000000);
+    uint256 transferFee =  etherFee.div(2500000000000000);
+    uint256 remaining = etherFee.sub(transferFee);
 
-    balances[owner] = balances[owner].add(tokenFee);
-    totalSupply_ = totalSupply_.sub(remainingLT);
+    totalSupply_ = totalSupply_.sub(_amount);
     approve(tx.origin, _amount); 
 
     emit Unmint(_from, _amount);
-    emit Transfer(_from, owner, tokenFee);
-    emit Transfer(_from, address(0), remainingLT);
-
-    if(remainingLT >0) {
-      return remainingLT.div(2).mul(10000000000000000);
-    } else {
-      return 0;
-    }
+    return remaining;
   }
 
 

@@ -1,10 +1,12 @@
-pragma solidity >=0.5.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0;
 
 import "./ERC20.sol";
 
 //Requries legal authority - suppose legal authorithy have address of ___
 //Since we are encouraging people to use our Token, there is no limit as to how much they can have
-//2 LT = 0.01 ether, 1 ether = 200 LT
+// 100 tokens = 1 sgd = 0.00025 ether 
+// 1 token = 0.01 SGD = 0.0000025 ether = 2500000000000 wei
 // 2% of LT token as transferFee for transferring from token other currency > token is transfered to owner. 98% of token is converted to ether sent to msg.sender
 
 
@@ -14,19 +16,20 @@ contract LegacyToken {
     uint256 getCreditFee = 1;
     
     mapping(address => uint256) users;
+    mapping(address => uint256) tokenBalances;
     mapping(address => uint256) interestStart;
     uint256 interestRate;
     uint256 interestPeriod;
 
 
-    constructor() public {
+    constructor() {
         ERC20 e = new ERC20();
         erc20Contract = e;
         legacyOwner = payable(msg.sender);
         interestRate = 0;
     }
 
-    event getToken();
+    event getToken(uint256 numTokens);
     event userAdded(address newUser);
     event sellToken(uint256 tokens); 
     event toTransferToken(address toPerson, uint256 tokens); 
@@ -43,35 +46,56 @@ contract LegacyToken {
         return true;
     }
 
-    function getLegacyToken() public payable {
-        uint256 amt = 2 * msg.value / 10000000000000000;
+    function getLegacyToken(address willWriter) external payable {
+        require(msg.value >0 ,"No ether received");
+        uint256 amt = msg.value / 2500000000000;
+
        
-        if (!isExistingUser(msg.sender)) {
-            users[msg.sender] = 1;
-            interestStart[msg.sender] = block.timestamp;
-            emit userAdded(msg.sender);
+        if (!isExistingUser(willWriter)) {
+            users[willWriter] = 1;
+            tokenBalances[willWriter] = amt;
+            interestStart[willWriter] = block.timestamp;
+            emit userAdded(willWriter);
         } else {
             //lazy update of interest earned
-            depositInterest(msg.sender);
+            depositInterest(willWriter);
         }
-
-        erc20Contract.mint(msg.sender, amt);
-        emit getToken();
+ 
+        erc20Contract.mint(willWriter, amt);
+        emit getToken(amt);
+    }
+    function startInterest(address add) public {
+        interestStart[add] = block.timestamp;
     }
 
     function sellLegacyToken(uint256 tokens) public payable {
         require(tokens > 0, "You need to sell at least some tokens");
-        uint256 userBalance = erc20Contract.balanceOf(msg.sender);
+        uint256 userBalance = erc20Contract.balanceOf(tx.origin);
         require(userBalance >= tokens, "Your token balance is lower than the amount you want to sell");
-        depositInterest(msg.sender);
-        uint256 toPay = erc20Contract.unmint(msg.sender, tokens);
-        payable(msg.sender).transfer(toPay);
+        depositInterest(tx.origin);
+        uint256 toPay = erc20Contract.unmint(tx.origin, tokens);
+        payable(tx.origin).transfer(toPay);
         emit sellToken(tokens);
     }
 
     function transferToken(address toPerson, uint256 tokens) public {
-        require(tokens > 0, "You need to sell at least some tokens");
-        erc20Contract.transfer(toPerson,tokens);
+        require(tokens > 0, "You need to transfer at least some tokens");
+        erc20Contract.transfer(toPerson, tokens);
+        emit toTransferToken(toPerson, tokens);
+    }
+
+    function transferToken(address fromPerson, address toPerson, uint256 tokens) public {
+        require(tokens > 0, "You need to transfer at least some tokens");
+        if (!isExistingUser(toPerson)) {
+            users[toPerson] = 1;
+            tokenBalances[toPerson] = tokens;
+            interestStart[toPerson] = block.timestamp;
+            emit userAdded(toPerson);
+        } else {
+            //lazy update of interest earned
+            depositInterest(toPerson);
+        }
+        erc20Contract.transferFrom(fromPerson, toPerson, tokens);
         emit toTransferToken(toPerson, tokens);
     }
 
@@ -95,17 +119,23 @@ contract LegacyToken {
     }
 
 
-    function calculateInterest(uint256 principal, address sender) public view returns (uint256, uint256) {
+    function calculateInterest(uint256 principal, address sender) internal view returns (uint256, uint256) {
+        require(interestStart[sender] != 0 ,"Sender not found");
         uint256 numPeriods = (block.timestamp - interestStart[sender]) / interestPeriod;
         for (uint period = 0; period < numPeriods; period++)  
             principal += principal * interestRate / 10000;
         return (principal, numPeriods);
     }
 
-    function checkLTCredit() public view returns (uint256) {     
-        uint256 balance = erc20Contract.balanceOf(msg.sender);
+    function checkLTCredit(address willWriter) public view returns (uint256) {   
+        uint256 balance = erc20Contract.balanceOf(willWriter);
+        if (balance == 0) {
+            return 0;
+        }
         uint256 newBalance;
-        (newBalance, ) = calculateInterest(balance, msg.sender);
+
+        // require(false,'fail');
+        (newBalance, ) = calculateInterest(balance, willWriter);
         return newBalance;
     }
 
@@ -113,9 +143,10 @@ contract LegacyToken {
         return erc20Contract.totalSupply();
     }
 
-    // function checkOwnerLTCredit() onlyOwner public view returns (uint256) {
-    //     return erc20Contract.balanceOf(address(this));
-    // }
+    function checkDepositedBal(address willWriter) public view returns (uint256) {
+        uint256 balance = erc20Contract.balanceOf(willWriter);
+        return balance;
+    }
 
     function checkOwnerWei() onlyOwner public view returns (uint256) {
         return erc20Contract.getEther() ;
